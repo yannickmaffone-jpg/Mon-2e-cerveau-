@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portail - Vie Privée / Pro</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f7f8fc;
+      color: #1f2937;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(960px, 100%);
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 28px 32px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 2.5vw, 2.6rem);
+      letter-spacing: -0.03em;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: #e5e7eb;
+    }
+
+    .tab-button {
+      border: none;
+      padding: 18px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #f9fafb;
+      color: #374151;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .tab-button.active {
+      background: #111827;
+      color: #f9fafb;
+    }
+
+    .content {
+      padding: 32px;
+      line-height: 1.8;
+    }
+
+    .content h2 {
+      margin-top: 0;
+      font-size: 1.55rem;
+      color: #111827;
+    }
+
+    .content p {
+      margin: 16px 0;
+      color: #4b5563;
+    }
+
+    .content ul {
+      margin: 16px 0;
+      padding-left: 20px;
+      color: #4b5563;
+    }
+
+    .content li {
+      margin-bottom: 0.8rem;
+    }
+
+    .footer {
+      padding: 20px 32px 28px;
+      background: #f3f4f6;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+
+    @media (max-width: 640px) {
+      .tabs {
+        grid-template-columns: 1fr;
+      }
+
+      .tab-button {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>Mon Portail</h1>
+      <p>Choisissez un onglet pour afficher les informations.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-target="vie-privee">VIE PRIVÉE</button>
+      <button class="tab-button" data-target="pro">PRO</button>
+    </div>
+
+    <div class="content" id="tab-content">
+      <section id="vie-privee">
+        <h2>Vie privée</h2>
+        <p>Bienvenue dans l’espace « Vie privée ». Cet onglet contient des informations et du contenu dédié à la vie personnelle, à la protection des données et à l’équilibre privé/professionnel.</p>
+        <ul>
+          <li>Gestion des préférences personnelles</li>
+          <li>Confidentialité et sécurité</li>
+          <li>Conseils pour un quotidien serein</li>
+        </ul>
+      </section>
+
+      <section id="pro" style="display: none;">
+        <h2>Pro</h2>
+        <p>Vous êtes dans l’espace « Pro ». Cet onglet est destiné aux ressources professionnelles, à l’organisation de projet et aux outils de productivité.</p>
+        <ul>
+          <li>Organisation des tâches et objectifs</li>
+          <li>Conseils pour la productivité</li>
+          <li>Ressources et contacts professionnels</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="footer">
+      Cliquez sur un onglet pour changer de section.
+    </div>
+  </div>
+
+  <script>
+    const buttons = document.querySelectorAll('.tab-button');
+    const sections = {
+      'vie-privee': document.getElementById('vie-privee'),
+      'pro': document.getElementById('pro'),
+    };
+
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        buttons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        Object.values(sections).forEach(section => section.style.display = 'none');
+        const target = button.dataset.target;
+        sections[target].style.display = 'block';
+      });
+    });
+  </script>
+</body>
+</html>
