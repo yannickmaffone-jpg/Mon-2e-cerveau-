@@ -2,172 +2,1302 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portail - Vie Privée / Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Synergy Global" />
+  <title>SYNERGY GLOBAL — Gestionnaire de projets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       color-scheme: light;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f7f8fc;
-      color: #1f2937;
+      --bg: #f6f7f8;
+      --surface: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f1f3f5;
+      --accent: #00608f;
+      --accent-dark: #004a6e;
+      --accent-soft: #e3eef4;
+      --green: #2e7d4f;
+      --green-soft: #e0f0e5;
+      --amber: #b8860b;
+      --amber-soft: #f5ecd5;
+      --red: #b83a3a;
+      --red-soft: #f7e6e6;
+      --ink: #101218;
+      --ink-soft: #4c5253;
+      --ink-mute: #8a9092;
+      --line: #e2e6e6;
+      --line-soft: #eef0f1;
+      --txt: #101218;
+      --muted: #8a9092;
+      --urgent: #b83a3a;
+      --important: #b8860b;
+      --shadow: 0 8px 26px rgba(16, 18, 24, 0.07);
+      --shadow-soft: 0 2px 10px rgba(16, 18, 24, 0.05);
+      --radius: 18px;
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
-      margin: 0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+      color: var(--txt);
+      background:
+        radial-gradient(circle at top left, rgba(0, 96, 143, 0.06), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(46, 125, 79, 0.06), transparent 32%),
+        var(--bg);
     }
+    h1, h2, h3, h4 { font-family: 'Quicksand', 'Open Sans', sans-serif; }
+    button { font-family: inherit; cursor: pointer; }
+    input, textarea, select { font-family: inherit; }
 
+    /* ---------- Layout ---------- */
+    .app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 18px;
+      padding: 12px 22px;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 40;
+      backdrop-filter: blur(14px);
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-mark { height: 44px; width: auto; display: block; }
+    .logo-txt { line-height: 1; font-family: 'Quicksand', sans-serif; }
+    .logo-txt b { font-size: 1.4rem; letter-spacing: 0.01em; font-weight: 700; color: var(--accent); }
+    .logo-txt .global { color: var(--ink-mute); font-weight: 600; }
+    .logo-txt small { display: block; color: var(--ink-mute); font-size: 0.68rem; letter-spacing: 0.2em; margin-top: 4px; }
+
+    .topbar-spacer { flex: 1; }
+    .topbar-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .who { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); padding: 6px 10px; border-radius: 12px; }
+    .who span { color: var(--ink-mute); font-size: 0.8rem; }
+    .who select { background: transparent; border: none; color: var(--ink); font-weight: 700; font-size: 0.9rem; outline: none; }
+    .who select option { color: var(--ink); }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .nav-label { color: var(--ink-mute); font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; text-align: left;
+      padding: 12px 14px; border-radius: 13px;
+      background: transparent; border: 1px solid transparent; color: var(--ink-soft);
+      font-size: 0.96rem; font-weight: 600; transition: all 0.18s ease;
+    }
+    .nav-item:hover { background: var(--accent-soft); border-color: var(--line); color: var(--accent-dark); }
+    .nav-item.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+    .nav-item .ico { width: 20px; height: 20px; flex: 0 0 20px; opacity: 0.95; }
+    .nav-item .badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .sidebar-foot { margin-top: auto; display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+
+    /* ---------- Main ---------- */
+    .main { padding: 26px 30px 60px; overflow-x: hidden; }
+    .page-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+    .page-head h1 { font-size: clamp(1.5rem, 3vw, 2.1rem); letter-spacing: -0.01em; color: var(--ink); font-weight: 700; }
+    .page-head p { color: var(--ink-soft); margin-top: 6px; max-width: 640px; line-height: 1.6; }
+    .page-head .spacer { flex: 1; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 0.9rem;
+      border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      transition: all 0.18s ease;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+    .btn.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+    .btn.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: var(--red); border-color: rgba(184,58,58,0.35); }
+    .btn.danger:hover { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+    .btn.sm { padding: 6px 11px; font-size: 0.82rem; border-radius: 10px; }
+    .btn.xs { padding: 4px 9px; font-size: 0.76rem; border-radius: 9px; }
+
+    /* ---------- Cards / grids ---------- */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
     .card {
-      width: min(960px, 100%);
-      background: #ffffff;
-      border-radius: 24px;
-      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line); border-radius: 22px; padding: 20px;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
+    .card.clickable { cursor: pointer; }
+    .card.clickable:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: var(--shadow); }
+    .card h3 { font-size: 1.15rem; color: var(--ink); margin-bottom: 6px; font-weight: 700; }
+    .card .meta { color: var(--ink-soft); font-size: 0.85rem; line-height: 1.6; }
 
-    .header {
-      padding: 28px 32px 20px;
-      text-align: center;
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-soft); }
+    .panel + .panel { margin-top: 18px; }
+    .panel h2 { font-size: 1.15rem; color: var(--ink); margin-bottom: 4px; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .panel .sub { color: var(--ink-mute); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.5; }
+
+    /* ---------- Tags / labels ---------- */
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-size: 0.72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .tag.urgent { background: var(--red-soft); color: var(--red); border: 1px solid rgba(184,58,58,0.4); }
+    .tag.important { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(184,134,11,0.4); }
+    .tag.soft { background: var(--panel-2); color: var(--ink-soft); border: 1px solid var(--line); text-transform: none; }
+    .pill { font-size: 0.74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); border: 1px solid rgba(0,96,143,0.25); }
+    .avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 0.72rem; font-weight: 800; color: #fff; }
+
+    /* ---------- Forms ---------- */
+    .field { display: grid; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 0.82rem; color: var(--ink-soft); font-weight: 600; }
+    .field .hint { font-size: 0.74rem; color: var(--ink-mute); }
+    .input, .textarea, .select {
+      width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+      padding: 10px 12px; color: var(--ink); font-size: 0.92rem; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
     }
+    .input:focus, .textarea:focus, .select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    .check { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+    .check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 
-    .header h1 {
-      margin: 0;
-      font-size: clamp(1.8rem, 2.5vw, 2.6rem);
-      letter-spacing: -0.03em;
+    /* ---------- Tabs ---------- */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 18px; padding-bottom: 2px; }
+    .tab { padding: 9px 15px; border-radius: 11px 11px 0 0; background: transparent; border: 1px solid transparent; color: var(--ink-mute); font-weight: 700; font-size: 0.88rem; }
+    .tab:hover { color: var(--accent-dark); }
+    .tab.active { color: var(--accent-dark); background: var(--accent-soft); border-color: var(--line); border-bottom-color: transparent; }
+
+    /* ---------- Task list ---------- */
+    .tasklist { display: grid; gap: 10px; }
+    .task {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
     }
+    .task .grip { color: var(--ink-mute); cursor: grab; padding-top: 2px; }
+    .task .cb { width: 19px; height: 19px; accent-color: var(--green); margin-top: 2px; cursor: pointer; flex: 0 0 auto; }
+    .task .body { flex: 1; min-width: 0; }
+    .task .title { font-weight: 600; color: var(--ink); }
+    .task.done .title { text-decoration: line-through; color: var(--ink-mute); }
+    .task .submeta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; font-size: 0.78rem; color: var(--ink-mute); }
+    .task .actions { display: flex; gap: 6px; align-items: center; }
+    .due { display: inline-flex; align-items: center; gap: 4px; }
+    .due.late { color: var(--red); font-weight: 700; }
 
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1px;
-      background: #e5e7eb;
-    }
+    /* ---------- Kanban ---------- */
+    .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+    .kcol { background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px; padding: 12px; min-height: 120px; }
+    .kcol.drop { border-color: var(--accent); background: var(--accent-soft); }
+    .kcol h4 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-mute); margin-bottom: 12px; display: flex; justify-content: space-between; }
+    .kcard { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 12px; margin-bottom: 10px; cursor: grab; box-shadow: var(--shadow-soft); }
+    .kcard:active { cursor: grabbing; }
+    .kcard .ktitle { font-weight: 600; font-size: 0.9rem; color: var(--ink); margin-bottom: 8px; }
+    .kcard.dragging { opacity: 0.4; }
 
-    .tab-button {
-      border: none;
-      padding: 18px 20px;
-      font-size: 1rem;
-      cursor: pointer;
-      background: #f9fafb;
-      color: #374151;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
+    /* ---------- Comments ---------- */
+    .comment { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+    .comment .c-body { flex: 1; }
+    .comment .c-head { font-size: 0.82rem; color: var(--ink-soft); }
+    .comment .c-head b { color: var(--ink); }
+    .comment .c-head .when { color: var(--ink-mute); font-weight: 400; margin-left: 6px; font-size: 0.76rem; }
+    .comment .c-text { margin-top: 4px; line-height: 1.55; color: var(--ink); }
 
-    .tab-button.active {
-      background: #111827;
-      color: #f9fafb;
-    }
+    /* ---------- Claude masked panel ---------- */
+    .claude-panel { border: 1px dashed rgba(0,96,143,0.45); background: var(--accent-soft); }
+    .claude-panel h2 { color: var(--accent-dark); }
+    .masked-note { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--accent-dark); background: #fff; border: 1px solid rgba(0,96,143,0.3); padding: 8px 12px; border-radius: 10px; margin-bottom: 14px; }
+    .attach { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; margin-bottom: 8px; }
+    .attach .a-ico { color: var(--accent); }
+    .attach .a-name { flex: 1; font-size: 0.88rem; }
 
-    .content {
-      padding: 32px;
-      line-height: 1.8;
-    }
+    /* ---------- Modal ---------- */
+    .overlay { position: fixed; inset: 0; background: rgba(16,18,24,0.45); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+    .overlay.open { display: flex; }
+    .modal { width: min(640px, 100%); max-height: 88vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 26px; box-shadow: 0 40px 120px rgba(16,18,24,0.25); }
+    .modal h2 { font-size: 1.35rem; color: var(--ink); margin-bottom: 4px; font-weight: 700; }
+    .modal .modal-sub { color: var(--ink-mute); font-size: 0.86rem; margin-bottom: 20px; }
+    .modal-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
 
-    .content h2 {
-      margin-top: 0;
-      font-size: 1.55rem;
-      color: #111827;
-    }
+    .empty { text-align: center; padding: 60px 20px; color: var(--ink-mute); }
+    .empty .big { font-size: 2.4rem; margin-bottom: 12px; }
+    .empty h3 { color: var(--ink) !important; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--accent-dark); border: 1px solid var(--accent); color: #fff; padding: 12px 20px; border-radius: 12px; font-weight: 600; z-index: 200; opacity: 0; transition: all 0.3s ease; box-shadow: 0 20px 60px rgba(16,18,24,0.3); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    .content p {
-      margin: 16px 0;
-      color: #4b5563;
-    }
+    .ai-suggest { display: grid; gap: 8px; margin-top: 10px; }
+    .ai-row { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); border: 1px solid rgba(0,96,143,0.25); border-radius: 11px; padding: 8px 10px; }
+    .ai-row input { flex: 1; background: transparent; border: none; color: var(--ink); outline: none; font-size: 0.9rem; }
+    .ai-row .x { color: var(--ink-mute); }
 
-    .content ul {
-      margin: 16px 0;
-      padding-left: 20px;
-      color: #4b5563;
-    }
+    .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 11px; padding: 3px; }
+    .seg button { padding: 7px 14px; border-radius: 9px; border: none; background: transparent; color: var(--ink-mute); font-weight: 700; font-size: 0.85rem; }
+    .seg button.active { background: var(--accent); color: #fff; }
 
-    .content li {
-      margin-bottom: 0.8rem;
-    }
+    .kv { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .kv .item { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 11px; font-size: 0.82rem; color: var(--ink-soft); }
+    .kv .item b { color: var(--ink); }
 
-    .footer {
-      padding: 20px 32px 28px;
-      background: #f3f4f6;
-      border-top: 1px solid #e5e7eb;
-      text-align: center;
-      font-size: 0.95rem;
-      color: #6b7280;
-    }
+    .progress { height: 7px; background: var(--line-soft); border-radius: 999px; overflow: hidden; margin-top: 12px; }
+    .progress > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 999px; transition: width 0.3s; }
 
-    @media (max-width: 640px) {
-      .tabs {
-        grid-template-columns: 1fr;
-      }
-
-      .tab-button {
-        text-align: left;
-      }
+    @media (max-width: 920px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 10px; }
+      .sidebar .nav-label, .sidebar-foot { display: none; }
+      .nav-item { white-space: nowrap; }
+      .kanban { grid-template-columns: 1fr; }
+      .main { padding: 20px 16px 60px; }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="header">
-      <h1>Mon Portail</h1>
-      <p>Choisissez un onglet pour afficher les informations.</p>
-    </div>
+  <div class="app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="logo">
+        <svg class="logo-mark" viewBox="0 0 90 90" role="img" aria-label="Synergy Global">
+          <g fill="#8a9092">
+            <circle cx="27" cy="9" r="4.5"/>
+            <circle cx="63" cy="9" r="4.5"/>
+            <circle cx="9" cy="27" r="4.5"/>
+            <circle cx="45" cy="27" r="4.5"/>
+            <circle cx="45" cy="63" r="4.5"/>
+            <circle cx="81" cy="63" r="4.5"/>
+            <circle cx="27" cy="81" r="4.5"/>
+            <circle cx="63" cy="81" r="4.5"/>
+          </g>
+          <g fill="#00608f">
+            <circle cx="45" cy="9" r="7"/>
+            <circle cx="27" cy="27" r="7"/>
+            <circle cx="27" cy="45" r="7"/>
+            <circle cx="45" cy="45" r="7"/>
+            <circle cx="63" cy="45" r="7"/>
+            <circle cx="63" cy="63" r="7"/>
+            <circle cx="45" cy="81" r="7"/>
+          </g>
+        </svg>
+        <div class="logo-txt">
+          <b>SYNERGY <span class="global">Global</span></b>
+          <small>GESTIONNAIRE DE PROJETS</small>
+        </div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-tools">
+        <div class="who" title="Choisis qui consulte l'app : un client ne voit que ses projets/tâches et jamais le panneau Claude.">
+          <span>Vue&nbsp;:</span>
+          <select id="whoSelect"></select>
+        </div>
+        <button class="btn sm ghost" data-action="enableNotif" title="Autoriser les notifications du navigateur">🔔 Notifs</button>
+        <button class="btn sm ghost" data-action="exportData" title="Sauvegarder un fichier de tes données">⬇︎ Export</button>
+        <button class="btn sm ghost" data-action="importData" title="Recharger un fichier de données">⬆︎ Import</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+      </div>
+    </header>
 
-    <div class="tabs">
-      <button class="tab-button active" data-target="vie-privee">VIE PRIVÉE</button>
-      <button class="tab-button" data-target="pro">PRO</button>
-    </div>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar"></nav>
 
-    <div class="content" id="tab-content">
-      <section id="vie-privee">
-        <h2>Vie privée</h2>
-        <p>Bienvenue dans l’espace « Vie privée ». Cet onglet contient des informations et du contenu dédié à la vie personnelle, à la protection des données et à l’équilibre privé/professionnel.</p>
-        <ul>
-          <li>Gestion des préférences personnelles</li>
-          <li>Confidentialité et sécurité</li>
-          <li>Conseils pour un quotidien serein</li>
-        </ul>
-      </section>
-
-      <section id="pro" style="display: none;">
-        <h2>Pro</h2>
-        <p>Vous êtes dans l’espace « Pro ». Cet onglet est destiné aux ressources professionnelles, à l’organisation de projet et aux outils de productivité.</p>
-        <ul>
-          <li>Organisation des tâches et objectifs</li>
-          <li>Conseils pour la productivité</li>
-          <li>Ressources et contacts professionnels</li>
-        </ul>
-      </section>
-    </div>
-
-    <div class="footer">
-      Cliquez sur un onglet pour changer de section.
-    </div>
+    <!-- Main -->
+    <main class="main" id="view"></main>
   </div>
 
+  <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+  <div class="toast" id="toast"></div>
+
   <script>
-    const buttons = document.querySelectorAll('.tab-button');
-    const sections = {
-      'vie-privee': document.getElementById('vie-privee'),
-      'pro': document.getElementById('pro'),
+  "use strict";
+
+  /* ============================================================
+     CONSTANTES
+  ============================================================ */
+  const LS_KEY = "synergy_global_v1";
+  const AVATAR_COLORS = ["#00608f","#2e7d4f","#b8860b","#2487b5","#b83a3a","#004a6e","#4c5253","#8a9092"];
+
+  const NOTIF_OPTIONS = [
+    { v: "none",   l: "Aucun", min: null },
+    { v: "due",    l: "À la date limite", min: 0 },
+    { v: "5m",     l: "5 minutes avant", min: 5 },
+    { v: "10m",    l: "10 minutes avant", min: 10 },
+    { v: "15m",    l: "15 minutes avant", min: 15 },
+    { v: "1h",     l: "1 heure avant", min: 60 },
+    { v: "2h",     l: "2 heures avant", min: 120 },
+    { v: "1d",     l: "1 jour avant", min: 1440 },
+    { v: "2d",     l: "2 jours avant", min: 2880 },
+    { v: "1w",     l: "1 semaine avant", min: 10080 },
+    { v: "2w",     l: "2 semaines avant", min: 20160 },
+    { v: "custom", l: "À une date définie", min: null },
+  ];
+
+  const STATUS = { todo: "À faire", doing: "En cours", done: "Terminé" };
+  const RECUR = { daily: "Quotidienne", weekly: "Hebdomadaire", monthly: "Mensuelle", weekday: "Jours ouvrés" };
+
+  const SECTIONS = [
+    { id: "projets",     label: "Les projets",                   icon: "📁" },
+    { id: "taches",      label: "Les tâches de projet",          icon: "✅" },
+    { id: "uniques",     label: "Les tâches uniques",            icon: "📌" },
+    { id: "deleguees",   label: "Les tâches uniques déléguées",  icon: "🤝" },
+    { id: "recurrentes", label: "Les tâches récurrentes",        icon: "🔁" },
+  ];
+
+  /* ============================================================
+     ÉTAT
+  ============================================================ */
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
+  function defaultState() {
+    const me = { id: "me", name: "Moi", role: "admin", color: AVATAR_COLORS[0] };
+    const m2 = { id: uid(), name: "Sophie (cliente)", role: "client", color: AVATAR_COLORS[2] };
+    const m3 = { id: uid(), name: "Karim (équipe)", role: "membre", color: AVATAR_COLORS[1] };
+    return {
+      members: [me, m2, m3],
+      currentUserId: "me",
+      ui: { section: "projets", openProjectId: null, projectTab: "tableau" },
+      projects: [],
+      uniqueTasks: [],
+      delegatedTasks: [],
+      recurringTasks: [],
+      notified: {},
     };
+  }
 
-    buttons.forEach(button => {
-      button.addEventListener('click', () => {
-        buttons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
+  let state = loadState();
 
-        Object.values(sections).forEach(section => section.style.display = 'none');
-        const target = button.dataset.target;
-        sections[target].style.display = 'block';
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return defaultState();
+      const s = JSON.parse(raw);
+      // garde-fous
+      s.members ||= []; s.projects ||= []; s.uniqueTasks ||= [];
+      s.delegatedTasks ||= []; s.recurringTasks ||= []; s.notified ||= {};
+      s.ui ||= { section: "projets", openProjectId: null, projectTab: "tableau" };
+      if (!s.members.find(m => m.id === s.currentUserId)) s.currentUserId = s.members[0]?.id || "me";
+      return s;
+    } catch (e) { return defaultState(); }
+  }
+
+  function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+  /* ============================================================
+     HELPERS
+  ============================================================ */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const member = (id) => state.members.find(m => m.id === id);
+  const currentUser = () => member(state.currentUserId) || state.members[0];
+  const isAdmin = () => currentUser()?.role === "admin";
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso + (iso.length === 10 ? "T00:00" : ""));
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  function fmtDateTime(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+  function avatar(m, big) {
+    if (!m) return "";
+    const sz = big ? "width:32px;height:32px;font-size:0.85rem" : "";
+    const init = m.name.trim().slice(0, 1).toUpperCase();
+    return `<span class="avatar" style="background:${m.color};${sz}" title="${esc(m.name)}">${esc(init)}</span>`;
+  }
+
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  /* ============================================================
+     PERMISSIONS  (cœur des autorisations demandées)
+  ============================================================ */
+  // L'admin voit tout. Un membre/client ne voit que les projets où il est assigné.
+  function visibleProjects() {
+    if (isAdmin()) return state.projects;
+    const uidc = state.currentUserId;
+    return state.projects.filter(p => p.ownerId === uidc || (p.assignees || []).includes(uidc));
+  }
+  // Dans un projet : si le membre est "restreint", il ne voit QUE ses tâches (pas pour se disperser).
+  function visibleTasks(p) {
+    if (isAdmin() || p.ownerId === state.currentUserId) return p.tasks;
+    if ((p.restricted || []).includes(state.currentUserId)) {
+      return p.tasks.filter(t => t.assigneeId === state.currentUserId);
+    }
+    return p.tasks;
+  }
+  // Le panneau Claude est masqué pour tout le monde sauf l'admin (le "masque" côté client).
+  const canSeeClaude = () => isAdmin();
+
+  /* ============================================================
+     GÉNÉRATEUR D'ÉTAPES (IA locale, hors-ligne)
+  ============================================================ */
+  function generateSteps(context) {
+    const txt = (context || "").trim();
+    const steps = [];
+    // 1) Étapes issues des phrases du contexte (l'IA "lit" ton contexte)
+    txt.split(/[\n.;•\-–]+/).map(s => s.trim()).filter(s => s.length > 6).slice(0, 6)
+      .forEach(s => steps.push(cap(s)));
+    // 2) Squelette de projet standard pour compléter
+    const skeleton = [
+      "Cadrer les objectifs et le périmètre",
+      "Lister les besoins et contraintes",
+      "Concevoir la solution / le plan d'action",
+      "Répartir les tâches et le calendrier",
+      "Réaliser / produire le livrable",
+      "Relire, tester et valider",
+      "Livrer au client et clôturer",
+    ];
+    skeleton.forEach(s => { if (steps.length < 8) steps.push(s); });
+    // dédoublonnage léger
+    const seen = new Set();
+    return steps.filter(s => { const k = s.toLowerCase().slice(0, 24); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 9);
+  }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  function newTask(over = {}) {
+    return Object.assign({
+      id: uid(), title: "", description: "", status: "todo", assigneeId: "",
+      labels: [], dueDate: "", dueTime: "", notify: "none", notifyCustom: "", done: false,
+    }, over);
+  }
+
+  /* ============================================================
+     NOTIFICATIONS
+  ============================================================ */
+  async function enableNotif() {
+    if (!("Notification" in window)) return toast("Notifications non supportées sur cet appareil");
+    const perm = await Notification.requestPermission();
+    toast(perm === "granted" ? "Notifications activées ✓" : "Notifications refusées");
+  }
+  function taskNotifyTime(t) {
+    const opt = NOTIF_OPTIONS.find(o => o.v === t.notify);
+    if (!opt || opt.v === "none") return null;
+    if (opt.v === "custom") return t.notifyCustom ? new Date(t.notifyCustom).getTime() : null;
+    if (!t.dueDate) return null;
+    const base = new Date(`${t.dueDate}T${t.dueTime || "09:00"}`).getTime();
+    return base - opt.min * 60000;
+  }
+  function allTasksFlat() {
+    const out = [];
+    state.projects.forEach(p => p.tasks.forEach(t => out.push({ t, ctx: p.name })));
+    state.uniqueTasks.forEach(t => out.push({ t, ctx: "Tâche unique" }));
+    state.delegatedTasks.forEach(t => out.push({ t, ctx: "Tâche déléguée" }));
+    return out;
+  }
+  function checkNotifications() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const now = Date.now();
+    allTasksFlat().forEach(({ t, ctx }) => {
+      if (t.done) return;
+      const when = taskNotifyTime(t);
+      if (when == null) return;
+      if (when <= now && now - when < 6 * 3600000 && !state.notified[t.id]) {
+        new Notification("⏰ " + ctx, { body: t.title || "Tâche à faire", tag: t.id });
+        state.notified[t.id] = now; save();
+      }
+    });
+  }
+  setInterval(checkNotifications, 30000);
+
+  /* ============================================================
+     EXPORT / IMPORT
+  ============================================================ */
+  function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `synergy-global-${todayISO()}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+    toast("Sauvegarde exportée ✓");
+  }
+  function importData() { $("#importFile").click(); }
+  $("#importFile").addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try { state = JSON.parse(r.result); save(); render(); toast("Données importées ✓"); }
+      catch { toast("Fichier invalide"); }
+    };
+    r.readAsText(f);
+  });
+
+  /* ============================================================
+     RENDER : TOPBAR + SIDEBAR
+  ============================================================ */
+  function renderTopbar() {
+    const sel = $("#whoSelect");
+    sel.innerHTML = state.members.map(m =>
+      `<option value="${m.id}" ${m.id === state.currentUserId ? "selected" : ""}>${esc(m.name)} · ${roleLabel(m.role)}</option>`
+    ).join("");
+  }
+  const roleLabel = (r) => ({ admin: "Admin", membre: "Équipe", client: "Client" }[r] || r);
+
+  function renderSidebar() {
+    const counts = {
+      projets: visibleProjects().length,
+      taches: visibleProjects().reduce((n, p) => n + visibleTasks(p).filter(t => !t.done).length, 0),
+      uniques: state.uniqueTasks.filter(t => !t.done).length,
+      deleguees: state.delegatedTasks.filter(t => !t.done).length,
+      recurrentes: state.recurringTasks.length,
+    };
+    $("#sidebar").innerHTML = `
+      <div class="nav-label">Navigation</div>
+      ${SECTIONS.map(s => `
+        <button class="nav-item ${state.ui.section === s.id && !state.ui.openProjectId ? "active" : ""}" data-action="goSection" data-id="${s.id}">
+          <span class="ico">${s.icon}</span>${esc(s.label)}
+          ${counts[s.id] ? `<span class="badge">${counts[s.id]}</span>` : ""}
+        </button>`).join("")}
+      <div class="sidebar-foot">
+        <button class="btn sm ghost" data-action="manageMembers">👥 Membres &amp; accès</button>
+        <button class="btn sm primary" data-action="newProject">＋ Nouveau projet</button>
+      </div>`;
+  }
+
+  /* ============================================================
+     RENDER : DISPATCH
+  ============================================================ */
+  function render() {
+    save();
+    renderTopbar();
+    renderSidebar();
+    const v = $("#view");
+    if (state.ui.openProjectId) { renderProjectDetail(v); return; }
+    switch (state.ui.section) {
+      case "projets": renderProjects(v); break;
+      case "taches": renderProjectTasks(v); break;
+      case "uniques": renderUnique(v, "uniqueTasks", "Les tâches uniques", "Des tâches indépendantes, sans projet."); break;
+      case "deleguees": renderDelegated(v); break;
+      case "recurrentes": renderRecurring(v); break;
+      default: renderProjects(v);
+    }
+  }
+
+  /* ============================================================
+     VUE : LISTE DES PROJETS
+  ============================================================ */
+  function renderProjects(v) {
+    const list = visibleProjects();
+    v.innerHTML = `
+      <div class="page-head">
+        <div>
+          <h1>Les projets</h1>
+          <p>Tu écris le contexte, l'IA propose les étapes. Assigne des personnes, ajoute des étiquettes, des dates et des notifications.</p>
+        </div>
+        <div class="spacer"></div>
+        ${isAdmin() ? `<button class="btn primary" data-action="newProject">＋ Nouveau projet</button>` : ""}
+      </div>
+      ${list.length === 0 ? emptyBox("📁", "Aucun projet visible", isAdmin() ? "Crée ton premier projet pour démarrer." : "Aucun projet ne t'a été assigné.") : `
+      <div class="grid">
+        ${list.map(p => projectCard(p)).join("")}
+      </div>`}`;
+  }
+
+  function projectCard(p) {
+    const tasks = visibleTasks(p);
+    const done = tasks.filter(t => t.done).length;
+    const pct = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    const late = p.deadline && new Date(p.deadline) < new Date() && pct < 100;
+    return `
+      <div class="card clickable" data-action="openProject" data-id="${p.id}">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+          <h3>${esc(p.name)}</h3>
+          <div class="tags">${(p.labels || []).map(l => `<span class="tag ${l}">${l}</span>`).join("")}</div>
+        </div>
+        <div class="meta">${esc((p.description || p.context || "Pas de description").slice(0, 110))}${(p.description || p.context || "").length > 110 ? "…" : ""}</div>
+        <div class="progress"><i style="width:${pct}%"></i></div>
+        <div class="kv">
+          <div class="item">✅ <b>${done}/${tasks.length}</b> tâches</div>
+          ${p.deadline ? `<div class="item" style="${late ? "color:#fda4af" : ""}">📅 ${late ? "En retard · " : ""}${fmtDate(p.deadline)}</div>` : ""}
+          <div class="item">👥 ${(p.assignees || []).length || 1}</div>
+        </div>
+        <div style="display:flex;gap:-6px;margin-top:12px">
+          ${(p.assignees || []).map(id => avatar(member(id))).join(" ")}
+        </div>
+      </div>`;
+  }
+
+  /* ============================================================
+     VUE : DÉTAIL D'UN PROJET
+  ============================================================ */
+  function renderProjectDetail(v) {
+    const p = state.projects.find(x => x.id === state.ui.openProjectId);
+    if (!p) { state.ui.openProjectId = null; return render(); }
+    let tab = state.ui.projectTab || "tableau";
+    const admin = isAdmin() || p.ownerId === state.currentUserId;
+    // Verrou : l'onglet Claude ne s'affiche jamais pour un non-admin (masque client)
+    if (tab === "claude" && !canSeeClaude()) tab = "tableau";
+
+    const tabs = [
+      { id: "tableau", l: "Tableau" },
+      { id: "checklist", l: "Checklist" },
+      { id: "commentaires", l: "Commentaires" },
+      { id: "infos", l: "Description & accès" },
+    ];
+    if (canSeeClaude()) tabs.push({ id: "claude", l: "🟣 Claude (privé)" });
+
+    v.innerHTML = `
+      <div class="page-head">
+        <div style="min-width:0">
+          <button class="btn sm ghost" data-action="goSection" data-id="projets" style="margin-bottom:10px">← Tous les projets</button>
+          <h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">${esc(p.name)}
+            <span class="tags">${(p.labels || []).map(l => `<span class="tag ${l}">${l}</span>`).join("")}</span>
+          </h1>
+          <p>${esc(p.description || "Pas encore de description.")}</p>
+          <div class="kv">
+            <div class="item">📅 Début : <b>${fmtDate(p.startDate) || "—"}</b></div>
+            <div class="item">🎯 Échéance : <b>${fmtDate(p.deadline) || "—"}</b></div>
+            <div class="item">👥 <b>${(p.assignees || []).length || 1}</b> membre(s)</div>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        ${admin ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+          <button class="btn sm" data-action="editProject" data-id="${p.id}">⚙︎ Réglages</button>
+          <button class="btn sm primary" data-action="addTask" data-id="${p.id}">＋ Tâche</button>
+        </div>` : ""}
+      </div>
+
+      <div class="tabs">
+        ${tabs.map(t => `<button class="tab ${tab === t.id ? "active" : ""}" data-action="projectTab" data-id="${t.id}">${esc(t.l)}</button>`).join("")}
+      </div>
+      <div id="projectBody"></div>`;
+
+    const body = $("#projectBody");
+    if (tab === "tableau") renderProjectBoard(body, p);
+    else if (tab === "checklist") renderChecklist(body, p);
+    else if (tab === "commentaires") renderComments(body, p);
+    else if (tab === "infos") renderProjectInfos(body, p, admin);
+    else if (tab === "claude") renderClaude(body, p);
+  }
+
+  /* ---- Tableau : liste OU kanban ---- */
+  function renderProjectBoard(body, p) {
+    const tasks = visibleTasks(p);
+    const view = p.view || "list";
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap">
+        <div class="seg">
+          <button class="${view === "list" ? "active" : ""}" data-action="setView" data-id="${p.id}" data-v="list">☰ Liste</button>
+          <button class="${view === "kanban" ? "active" : ""}" data-action="setView" data-id="${p.id}" data-v="kanban">▦ Kanban</button>
+        </div>
+        ${(isAdmin() || p.ownerId === state.currentUserId) ? `<button class="btn sm primary" data-action="addTask" data-id="${p.id}">＋ Tâche</button>` : ""}
+      </div>
+      <div id="boardArea"></div>`;
+    const area = $("#boardArea");
+    if (!tasks.length) { area.innerHTML = emptyBox("✅", "Aucune tâche", "Ajoute une tâche ou génère des étapes via les réglages du projet."); return; }
+    if (view === "kanban") renderKanban(area, p, tasks);
+    else area.innerHTML = `<div class="tasklist">${tasks.map(t => taskRow(t, p.id)).join("")}</div>`;
+  }
+
+  function taskRow(t, pid) {
+    const m = member(t.assigneeId);
+    const late = t.dueDate && !t.done && new Date(`${t.dueDate}T${t.dueTime || "23:59"}`) < new Date();
+    const notif = NOTIF_OPTIONS.find(o => o.v === t.notify);
+    return `
+      <div class="task ${t.done ? "done" : ""}">
+        <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleTask" data-pid="${pid}" data-id="${t.id}">
+        <div class="body">
+          <div class="title">${esc(t.title)}</div>
+          <div class="submeta">
+            ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+            <span class="pill">${STATUS[t.status]}</span>
+            ${m ? avatar(m) + " " + esc(m.name) : ""}
+            ${t.dueDate ? `<span class="due ${late ? "late" : ""}">📅 ${fmtDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}${late ? " · en retard" : ""}</span>` : ""}
+            ${notif && notif.v !== "none" ? `<span title="Rappel">🔔 ${esc(notif.l)}</span>` : ""}
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn xs ghost" data-action="editTask" data-pid="${pid}" data-id="${t.id}">✎</button>
+          <button class="btn xs danger" data-action="delTask" data-pid="${pid}" data-id="${t.id}">🗑</button>
+        </div>
+      </div>`;
+  }
+
+  function renderKanban(area, p, tasks) {
+    const cols = ["todo", "doing", "done"];
+    area.innerHTML = `<div class="kanban">${cols.map(c => `
+      <div class="kcol" data-col="${c}">
+        <h4>${STATUS[c]} <span>${tasks.filter(t => t.status === c).length}</span></h4>
+        ${tasks.filter(t => t.status === c).map(t => `
+          <div class="kcard" draggable="true" data-id="${t.id}">
+            <div class="ktitle">${esc(t.title)}</div>
+            <div class="submeta">
+              ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+              ${member(t.assigneeId) ? avatar(member(t.assigneeId)) : ""}
+              ${t.dueDate ? `<span class="due">📅 ${fmtDate(t.dueDate)}</span>` : ""}
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px">
+              <button class="btn xs ghost" data-action="editTask" data-pid="${p.id}" data-id="${t.id}">✎</button>
+              <button class="btn xs danger" data-action="delTask" data-pid="${p.id}" data-id="${t.id}">🗑</button>
+            </div>
+          </div>`).join("")}
+      </div>`).join("")}</div>`;
+    wireKanbanDnD(area, p);
+  }
+
+  function wireKanbanDnD(area, p) {
+    let dragId = null;
+    area.querySelectorAll(".kcard").forEach(card => {
+      card.addEventListener("dragstart", () => { dragId = card.dataset.id; card.classList.add("dragging"); });
+      card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    });
+    area.querySelectorAll(".kcol").forEach(col => {
+      col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drop"); });
+      col.addEventListener("dragleave", () => col.classList.remove("drop"));
+      col.addEventListener("drop", e => {
+        e.preventDefault(); col.classList.remove("drop");
+        const t = p.tasks.find(x => x.id === dragId);
+        if (t) { t.status = col.dataset.col; t.done = t.status === "done"; save(); render(); }
       });
     });
+  }
+
+  /* ---- Checklist ---- */
+  function renderChecklist(body, p) {
+    const tasks = visibleTasks(p);
+    const done = tasks.filter(t => t.done).length;
+    const pct = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+    body.innerHTML = `
+      <div class="panel">
+        <h2>Checklist du projet</h2>
+        <div class="sub">Une ligne par tâche à accomplir. Coche quand c'est terminé.</div>
+        <div class="progress"><i style="width:${pct}%"></i></div>
+        <div style="color:var(--muted);font-size:0.85rem;margin:10px 0 16px">${done}/${tasks.length} terminées · ${pct}%</div>
+        <div class="tasklist">
+          ${tasks.length ? tasks.map(t => `
+            <label class="task ${t.done ? "done" : ""}" style="cursor:pointer">
+              <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleTask" data-pid="${p.id}" data-id="${t.id}">
+              <div class="body"><div class="title">${esc(t.title)}</div></div>
+            </label>`).join("") : `<div class="empty">Aucune tâche dans la checklist.</div>`}
+        </div>
+        ${(isAdmin() || p.ownerId === state.currentUserId) ? `
+        <div class="row" style="margin-top:16px">
+          <input class="input" id="quickCheck" placeholder="Ajouter une ligne à la checklist…">
+          <button class="btn primary" style="flex:0" data-action="quickAddCheck" data-id="${p.id}">Ajouter</button>
+        </div>` : ""}
+      </div>`;
+  }
+
+  /* ---- Commentaires ---- */
+  function renderComments(body, p) {
+    const list = (p.comments || []);
+    body.innerHTML = `
+      <div class="panel">
+        <h2>Commentaires de l'équipe</h2>
+        <div class="sub">Échangez entre membres. Chaque message est horodaté : « X a dit (date · heure) ».</div>
+        <div>
+          ${list.length ? list.map(c => {
+            const m = member(c.authorId);
+            return `<div class="comment">
+              ${avatar(m, true)}
+              <div class="c-body">
+                <div class="c-head"><b>${esc(m ? m.name : "?")}</b> a dit <span class="when">${fmtDateTime(c.date)}</span></div>
+                <div class="c-text">${esc(c.text)}</div>
+              </div>
+              ${(isAdmin() || c.authorId === state.currentUserId) ? `<button class="btn xs danger" data-action="delComment" data-pid="${p.id}" data-id="${c.id}">🗑</button>` : ""}
+            </div>`;
+          }).join("") : `<div class="empty" style="padding:30px">Pas encore de commentaire.</div>`}
+        </div>
+        <div style="margin-top:16px">
+          <textarea class="textarea" id="commentText" placeholder="Écris un message en tant que ${esc(currentUser().name)}…"></textarea>
+          <div style="text-align:right;margin-top:10px">
+            <button class="btn primary" data-action="addComment" data-id="${p.id}">Envoyer</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  /* ---- Infos & accès ---- */
+  function renderProjectInfos(body, p, admin) {
+    body.innerHTML = `
+      <div class="panel">
+        <h2>Description du projet</h2>
+        <div class="sub">Le dossier du projet et son contexte.</div>
+        <p style="line-height:1.7;color:#cbd5e1;white-space:pre-wrap">${esc(p.description || "—")}</p>
+        ${p.context ? `<div style="margin-top:16px"><strong style="color:#fff">Contexte initial :</strong><p style="line-height:1.7;color:var(--muted);white-space:pre-wrap;margin-top:6px">${esc(p.context)}</p></div>` : ""}
+      </div>
+      <div class="panel">
+        <h2>Membres &amp; autorisations</h2>
+        <div class="sub">Qui participe au projet, et qui voit quoi.</div>
+        ${(p.assignees || []).length ? (p.assignees).map(id => {
+          const m = member(id); if (!m) return "";
+          const restricted = (p.restricted || []).includes(id);
+          return `<div class="attach" style="background:rgba(255,255,255,0.03)">
+            ${avatar(m, true)}
+            <div class="a-name"><b>${esc(m.name)}</b> <span style="color:var(--muted)">· ${roleLabel(m.role)}</span></div>
+            ${admin ? `<label class="check" style="font-size:0.82rem"><input type="checkbox" ${restricted ? "checked" : ""} data-action="toggleRestrict" data-pid="${p.id}" data-id="${id}"> Ne voit que ses tâches</label>` : (restricted ? `<span class="tag soft">Accès limité</span>` : "")}
+          </div>`;
+        }).join("") : `<div style="color:var(--muted)">Aucun membre assigné.</div>`}
+        <div style="margin-top:10px;font-size:0.82rem;color:var(--muted);line-height:1.6">
+          ℹ️ Un membre non-admin ne voit ce projet que s'il y est assigné (les autres projets lui sont cachés).
+          S'il est « limité à ses tâches », il ne voit que sa partie — pour ne pas se disperser.
+        </div>
+        ${admin ? `<div style="margin-top:14px"><button class="btn sm" data-action="editProject" data-id="${p.id}">⚙︎ Modifier les membres</button></div>` : ""}
+      </div>`;
+  }
+
+  /* ---- Panneau Claude (masqué pour le client) ---- */
+  function renderClaude(body, p) {
+    p.claude ||= { instructions: "", attachments: [] };
+    body.innerHTML = `
+      <div class="panel claude-panel">
+        <h2>🟣 Pilotage Claude — espace privé</h2>
+        <div class="masked-note">🔒 Masqué pour le client : cet espace n'est visible que par l'admin. Le client ne le voit jamais.</div>
+        <div class="field">
+          <label>Instructions pour Claude</label>
+          <textarea class="textarea" id="claudeInstr" placeholder="Ex : Tonalité, livrables attendus, contraintes du client, points de vigilance…">${esc(p.claude.instructions)}</textarea>
+        </div>
+        <button class="btn sm primary" data-action="saveClaude" data-id="${p.id}">Enregistrer les instructions</button>
+
+        <h2 style="margin-top:24px">Pièces jointes (contexte enrichi)</h2>
+        <div class="sub">Référence ici toutes les pièces du projet pour enrichir le pilotage Claude.</div>
+        ${(p.claude.attachments || []).length ? p.claude.attachments.map(a => `
+          <div class="attach">
+            <span class="a-ico">📎</span>
+            <div class="a-name"><b>${esc(a.name)}</b>${a.note ? `<div style="color:var(--muted);font-size:0.8rem">${esc(a.note)}</div>` : ""}</div>
+            <button class="btn xs danger" data-action="delAttach" data-pid="${p.id}" data-id="${a.id}">🗑</button>
+          </div>`).join("") : `<div style="color:var(--muted);margin-bottom:10px">Aucune pièce jointe.</div>`}
+        <div class="row" style="margin-top:8px">
+          <input class="input" id="attachName" placeholder="Nom de la pièce (ex : Brief client.pdf)">
+          <input class="input" id="attachNote" placeholder="Note / lien (optionnel)">
+          <button class="btn primary" style="flex:0" data-action="addAttach" data-id="${p.id}">＋</button>
+        </div>
+      </div>`;
+  }
+
+  /* ============================================================
+     VUE : TÂCHES DE PROJET (agrégées, toutes les tâches)
+  ============================================================ */
+  function renderProjectTasks(v) {
+    const rows = [];
+    visibleProjects().forEach(p => visibleTasks(p).forEach(t => rows.push({ p, t })));
+    rows.sort((a, b) => (a.t.dueDate || "9999") .localeCompare(b.t.dueDate || "9999"));
+    v.innerHTML = `
+      <div class="page-head"><div>
+        <h1>Les tâches de projet</h1>
+        <p>Toutes les tâches issues de tes projets, regroupées et triées par échéance.</p>
+      </div></div>
+      ${rows.length ? `<div class="tasklist">${rows.map(({ p, t }) => `
+        <div class="task ${t.done ? "done" : ""}">
+          <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleTask" data-pid="${p.id}" data-id="${t.id}">
+          <div class="body">
+            <div class="title">${esc(t.title)}</div>
+            <div class="submeta">
+              <span class="pill" data-action="openProject" data-id="${p.id}" style="cursor:pointer">📁 ${esc(p.name)}</span>
+              ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+              ${member(t.assigneeId) ? avatar(member(t.assigneeId)) + " " + esc(member(t.assigneeId).name) : ""}
+              ${t.dueDate ? `<span class="due">📅 ${fmtDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}</span>` : ""}
+            </div>
+          </div>
+          <div class="actions"><button class="btn xs ghost" data-action="editTask" data-pid="${p.id}" data-id="${t.id}">✎</button></div>
+        </div>`).join("")}</div>` : emptyBox("✅", "Aucune tâche de projet", "Les tâches de tes projets apparaîtront ici.")}`;
+  }
+
+  /* ============================================================
+     VUE : TÂCHES UNIQUES (générique)
+  ============================================================ */
+  function renderUnique(v, key, title, sub) {
+    const list = state[key];
+    v.innerHTML = `
+      <div class="page-head">
+        <div><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>
+        <div class="spacer"></div>
+        <button class="btn primary" data-action="addStandalone" data-key="${key}">＋ Tâche</button>
+      </div>
+      ${list.length ? `<div class="tasklist">${list.map(t => standaloneRow(t, key)).join("")}</div>`
+        : emptyBox("📌", "Aucune tâche", "Ajoute ta première tâche.")}`;
+  }
+
+  function standaloneRow(t, key) {
+    const m = member(t.assigneeId);
+    const late = t.dueDate && !t.done && new Date(`${t.dueDate}T${t.dueTime || "23:59"}`) < new Date();
+    const notif = NOTIF_OPTIONS.find(o => o.v === t.notify);
+    return `
+      <div class="task ${t.done ? "done" : ""}">
+        <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleStandalone" data-key="${key}" data-id="${t.id}">
+        <div class="body">
+          <div class="title">${esc(t.title)}</div>
+          <div class="submeta">
+            ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+            ${m ? avatar(m) + " " + esc(m.name) : ""}
+            ${t.dueDate ? `<span class="due ${late ? "late" : ""}">📅 ${fmtDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}${late ? " · en retard" : ""}</span>` : ""}
+            ${notif && notif.v !== "none" ? `<span>🔔 ${esc(notif.l)}</span>` : ""}
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn xs ghost" data-action="editStandalone" data-key="${key}" data-id="${t.id}">✎</button>
+          <button class="btn xs danger" data-action="delStandalone" data-key="${key}" data-id="${t.id}">🗑</button>
+        </div>
+      </div>`;
+  }
+
+  function renderDelegated(v) {
+    const list = state.delegatedTasks;
+    v.innerHTML = `
+      <div class="page-head">
+        <div><h1>Les tâches uniques déléguées</h1><p>Des tâches confiées à quelqu'un d'autre. Suis qui fait quoi et où ça en est.</p></div>
+        <div class="spacer"></div>
+        <button class="btn primary" data-action="addStandalone" data-key="delegatedTasks">＋ Déléguer une tâche</button>
+      </div>
+      ${list.length ? `<div class="tasklist">${list.map(t => {
+        const m = member(t.assigneeId);
+        return `<div class="task ${t.done ? "done" : ""}">
+          <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleStandalone" data-key="delegatedTasks" data-id="${t.id}">
+          <div class="body">
+            <div class="title">${esc(t.title)}</div>
+            <div class="submeta">
+              <span class="pill">Déléguée à ${m ? esc(m.name) : "?"}</span>
+              ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+              <span class="tag soft">${STATUS[t.status]}</span>
+              ${t.dueDate ? `<span class="due">📅 ${fmtDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}</span>` : ""}
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn xs ghost" data-action="editStandalone" data-key="delegatedTasks" data-id="${t.id}">✎</button>
+            <button class="btn xs danger" data-action="delStandalone" data-key="delegatedTasks" data-id="${t.id}">🗑</button>
+          </div>
+        </div>`;
+      }).join("")}</div>` : emptyBox("🤝", "Aucune tâche déléguée", "Délègue une tâche à un membre de ton équipe.")}`;
+  }
+
+  function renderRecurring(v) {
+    const list = state.recurringTasks;
+    v.innerHTML = `
+      <div class="page-head">
+        <div><h1>Les tâches récurrentes</h1><p>Les tâches qui reviennent régulièrement (quotidiennes, hebdo, mensuelles).</p></div>
+        <div class="spacer"></div>
+        <button class="btn primary" data-action="addRecurring">＋ Tâche récurrente</button>
+      </div>
+      ${list.length ? `<div class="tasklist">${list.map(t => {
+        const m = member(t.assigneeId);
+        return `<div class="task">
+          <span class="grip">🔁</span>
+          <div class="body">
+            <div class="title">${esc(t.title)}</div>
+            <div class="submeta">
+              <span class="pill">${RECUR[t.recurrence] || t.recurrence}</span>
+              ${t.time ? `<span>🕐 ${esc(t.time)}</span>` : ""}
+              ${m ? avatar(m) + " " + esc(m.name) : ""}
+              ${t.labels.map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn xs ghost" data-action="editRecurring" data-id="${t.id}">✎</button>
+            <button class="btn xs danger" data-action="delRecurring" data-id="${t.id}">🗑</button>
+          </div>
+        </div>`;
+      }).join("")}</div>` : emptyBox("🔁", "Aucune tâche récurrente", "Ajoute une routine qui revient régulièrement.")}`;
+  }
+
+  const emptyBox = (ico, t, s) => `<div class="empty"><div class="big">${ico}</div><h3 style="color:#e2e8f0;margin-bottom:6px">${esc(t)}</h3><p>${esc(s)}</p></div>`;
+
+  /* ============================================================
+     MODALES
+  ============================================================ */
+  function openModal(html) { $("#modal").innerHTML = html; $("#overlay").classList.add("open"); }
+  function closeModal() { $("#overlay").classList.remove("open"); $("#modal").innerHTML = ""; }
+  $("#overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeModal(); });
+
+  function labelChecks(sel) {
+    return `<div class="row">
+      <label class="check"><input type="checkbox" id="lbl_urgent" ${sel.includes("urgent") ? "checked" : ""}> <span class="tag urgent">urgent</span></label>
+      <label class="check"><input type="checkbox" id="lbl_important" ${sel.includes("important") ? "checked" : ""}> <span class="tag important">important</span></label>
+    </div>`;
+  }
+  function memberOptions(selId) {
+    return `<option value="">— Personne —</option>` + state.members.map(m => `<option value="${m.id}" ${m.id === selId ? "selected" : ""}>${esc(m.name)}</option>`).join("");
+  }
+  function notifOptions(sel) {
+    return NOTIF_OPTIONS.map(o => `<option value="${o.v}" ${o.v === sel ? "selected" : ""}>${esc(o.l)}</option>`).join("");
+  }
+  function readLabels() { const a = []; if ($("#lbl_urgent")?.checked) a.push("urgent"); if ($("#lbl_important")?.checked) a.push("important"); return a; }
+
+  /* ---- Modale : nouveau / édition de projet ---- */
+  function projectModal(existing) {
+    const p = existing || { name: "", context: "", description: "", labels: [], startDate: todayISO(), deadline: "", assignees: [], restricted: [] };
+    openModal(`
+      <h2>${existing ? "Réglages du projet" : "Nouveau projet"}</h2>
+      <div class="modal-sub">Écris le contexte : l'IA te proposera des étapes que tu pourras modifier.</div>
+      <div class="field"><label>Nom du projet</label><input class="input" id="p_name" value="${esc(p.name)}" placeholder="Ex : Refonte du site client"></div>
+      <div class="field">
+        <label>Contexte du projet</label>
+        <span class="hint">Décris l'objectif, le client, les contraintes… puis clique « Générer les étapes ».</span>
+        <textarea class="textarea" id="p_context" placeholder="Ex : Le client veut un nouveau site vitrine moderne, livraison dans 6 semaines, budget serré, besoin d'un formulaire de contact et d'un blog.">${esc(p.context)}</textarea>
+      </div>
+      ${!existing ? `<button class="btn sm" data-action="genSteps">✨ Générer les étapes (IA)</button>
+      <div class="ai-suggest" id="aiSuggest"></div>` : ""}
+      <div class="field" style="margin-top:14px"><label>Description (dossier du projet)</label><textarea class="textarea" id="p_desc" placeholder="Résumé visible par l'équipe…">${esc(p.description)}</textarea></div>
+      <div class="row">
+        <div class="field"><label>📅 Date de début</label><input class="input" type="date" id="p_start" value="${p.startDate || ""}"></div>
+        <div class="field"><label>🎯 Date d'échéance</label><input class="input" type="date" id="p_deadline" value="${p.deadline || ""}"></div>
+      </div>
+      <div class="field"><label>Étiquettes du projet</label>${labelChecks(p.labels || [])}</div>
+      <div class="field">
+        <label>Membres assignés <span class="hint">(coche qui participe — ils verront ce projet)</span></label>
+        <div style="display:grid;gap:8px;margin-top:4px">
+          ${state.members.map(m => `<label class="check"><input type="checkbox" class="assignee" value="${m.id}" ${(p.assignees || []).includes(m.id) ? "checked" : ""}> ${avatar(m)} ${esc(m.name)} <span style="color:var(--muted);font-size:0.8rem">· ${roleLabel(m.role)}</span></label>`).join("")}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-action="closeModal">Annuler</button>
+        <button class="btn primary" data-action="saveProject" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Créer le projet"}</button>
+      </div>`);
+  }
+
+  /* ---- Modale : tâche de projet ---- */
+  function taskModal(pid, existing) {
+    const t = existing || newTask();
+    const showCustom = t.notify === "custom";
+    openModal(`
+      <h2>${existing ? "Modifier la tâche" : "Nouvelle tâche"}</h2>
+      <div class="modal-sub">Étiquettes, assignation, échéance et rappel.</div>
+      <div class="field"><label>Intitulé</label><input class="input" id="t_title" value="${esc(t.title)}" placeholder="Ex : Maquette page d'accueil"></div>
+      <div class="field"><label>Description</label><textarea class="textarea" id="t_desc" placeholder="Détails…">${esc(t.description || "")}</textarea></div>
+      <div class="row">
+        <div class="field"><label>Assignée à</label><select class="select" id="t_assignee">${memberOptions(t.assigneeId)}</select></div>
+        <div class="field"><label>Statut</label><select class="select" id="t_status">${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${t.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      </div>
+      <div class="field"><label>Étiquette (uniquement sur cette tâche)</label>${labelChecks(t.labels)}</div>
+      <div class="row">
+        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" value="${t.dueDate || ""}"></div>
+        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}"></div>
+      </div>
+      <div class="field">
+        <label>🔔 Notification</label>
+        <span class="hint">Reçois un rappel si la tâche a un jour et une heure.</span>
+        <select class="select" id="t_notify" data-action="notifyChange">${notifOptions(t.notify)}</select>
+      </div>
+      <div class="field" id="customWrap" style="${showCustom ? "" : "display:none"}">
+        <label>Date/heure du rappel</label><input class="input" type="datetime-local" id="t_custom" value="${t.notifyCustom || ""}">
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-action="closeModal">Annuler</button>
+        <button class="btn primary" data-action="saveTask" data-pid="${pid}" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Ajouter"}</button>
+      </div>`);
+  }
+
+  /* ---- Modale : tâche autonome (unique / déléguée) ---- */
+  function standaloneModal(key, existing) {
+    const t = existing || newTask();
+    const isDeleg = key === "delegatedTasks";
+    const showCustom = t.notify === "custom";
+    openModal(`
+      <h2>${existing ? "Modifier" : isDeleg ? "Déléguer une tâche" : "Nouvelle tâche"}</h2>
+      <div class="modal-sub">${isDeleg ? "Confie cette tâche à un membre." : "Une tâche indépendante."}</div>
+      <div class="field"><label>Intitulé</label><input class="input" id="t_title" value="${esc(t.title)}" placeholder="Que faut-il faire ?"></div>
+      <div class="row">
+        <div class="field"><label>${isDeleg ? "Déléguée à" : "Assignée à"}</label><select class="select" id="t_assignee">${memberOptions(t.assigneeId)}</select></div>
+        <div class="field"><label>Statut</label><select class="select" id="t_status">${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${t.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      </div>
+      <div class="field"><label>Étiquettes</label>${labelChecks(t.labels)}</div>
+      <div class="row">
+        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" value="${t.dueDate || ""}"></div>
+        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}"></div>
+      </div>
+      <div class="field"><label>🔔 Notification</label><select class="select" id="t_notify" data-action="notifyChange">${notifOptions(t.notify)}</select></div>
+      <div class="field" id="customWrap" style="${showCustom ? "" : "display:none"}"><label>Date/heure du rappel</label><input class="input" type="datetime-local" id="t_custom" value="${t.notifyCustom || ""}"></div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-action="closeModal">Annuler</button>
+        <button class="btn primary" data-action="saveStandalone" data-key="${key}" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Ajouter"}</button>
+      </div>`);
+  }
+
+  /* ---- Modale : tâche récurrente ---- */
+  function recurringModal(existing) {
+    const t = existing || { title: "", recurrence: "weekly", time: "", assigneeId: "", labels: [] };
+    openModal(`
+      <h2>${existing ? "Modifier la tâche récurrente" : "Nouvelle tâche récurrente"}</h2>
+      <div class="modal-sub">Une routine qui revient automatiquement.</div>
+      <div class="field"><label>Intitulé</label><input class="input" id="r_title" value="${esc(t.title)}" placeholder="Ex : Point d'équipe"></div>
+      <div class="row">
+        <div class="field"><label>Fréquence</label><select class="select" id="r_recur">${Object.entries(RECUR).map(([k, l]) => `<option value="${k}" ${t.recurrence === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="r_time" value="${t.time || ""}"></div>
+      </div>
+      <div class="field"><label>Assignée à</label><select class="select" id="r_assignee">${memberOptions(t.assigneeId)}</select></div>
+      <div class="field"><label>Étiquettes</label>${labelChecks(t.labels || [])}</div>
+      <div class="modal-foot">
+        <button class="btn ghost" data-action="closeModal">Annuler</button>
+        <button class="btn primary" data-action="saveRecurring" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Ajouter"}</button>
+      </div>`);
+  }
+
+  /* ---- Modale : membres & accès ---- */
+  function membersModal() {
+    openModal(`
+      <h2>Membres &amp; accès</h2>
+      <div class="modal-sub">Gère les personnes. Le rôle « Client » ne voit jamais le panneau Claude.</div>
+      <div style="display:grid;gap:8px;margin-bottom:18px">
+        ${state.members.map(m => `
+          <div class="attach" style="background:rgba(255,255,255,0.03)">
+            ${avatar(m, true)}
+            <div class="a-name"><b>${esc(m.name)}</b> <span style="color:var(--muted)">· ${roleLabel(m.role)}</span></div>
+            ${m.id !== "me" ? `<button class="btn xs danger" data-action="delMember" data-id="${m.id}">🗑</button>` : `<span class="tag soft">toi</span>`}
+          </div>`).join("")}
+      </div>
+      <div class="field"><label>Ajouter un membre</label>
+        <div class="row">
+          <input class="input" id="m_name" placeholder="Nom">
+          <select class="select" id="m_role" style="flex:0;min-width:130px">
+            <option value="membre">Équipe</option>
+            <option value="client">Client</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn primary" style="flex:0" data-action="addMember">＋</button>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn primary" data-action="closeModal">Fermer</button></div>`);
+  }
+
+  /* ============================================================
+     ACTIONS (dispatch click)
+  ============================================================ */
+  const actions = {
+    goSection: (el) => { state.ui.section = el.dataset.id; state.ui.openProjectId = null; render(); },
+    openProject: (el) => { state.ui.openProjectId = el.dataset.id; state.ui.projectTab = "tableau"; render(); },
+    projectTab: (el) => { state.ui.projectTab = el.dataset.id; render(); },
+    newProject: () => projectModal(null),
+    closeModal,
+    enableNotif, exportData, importData,
+    manageMembers: membersModal,
+
+    genSteps: () => {
+      const ctx = $("#p_context").value;
+      const steps = generateSteps(ctx);
+      const box = $("#aiSuggest");
+      if (!steps.length) { box.innerHTML = `<div style="color:var(--muted);font-size:0.85rem">Écris un peu de contexte puis réessaie.</div>`; return; }
+      box.innerHTML = `<div style="font-size:0.82rem;color:#bae6fd;margin:6px 0">✨ Étapes proposées (modifiables) :</div>` +
+        steps.map(s => `<div class="ai-row"><input value="${esc(s)}"><button class="btn xs ghost x" data-action="rmAiRow">✕</button></div>`).join("") +
+        `<button class="btn xs" data-action="addAiRow" style="margin-top:4px">＋ Ajouter une étape</button>`;
+    },
+    rmAiRow: (el) => el.closest(".ai-row").remove(),
+    addAiRow: () => { const box = $("#aiSuggest"); const d = document.createElement("div"); d.className = "ai-row"; d.innerHTML = `<input placeholder="Nouvelle étape…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button>`; box.insertBefore(d, box.querySelector("button[data-action=addAiRow]")); },
+
+    saveProject: (el) => {
+      const name = $("#p_name").value.trim();
+      if (!name) return toast("Donne un nom au projet");
+      const assignees = [...document.querySelectorAll(".assignee:checked")].map(c => c.value);
+      const data = {
+        name, context: $("#p_context").value.trim(), description: $("#p_desc").value.trim(),
+        startDate: $("#p_start").value, deadline: $("#p_deadline").value,
+        labels: readLabels(), assignees,
+      };
+      if (el.dataset.id) {
+        const p = state.projects.find(x => x.id === el.dataset.id);
+        Object.assign(p, data);
+        p.restricted = (p.restricted || []).filter(id => assignees.includes(id));
+        toast("Projet mis à jour ✓");
+      } else {
+        const steps = [...document.querySelectorAll("#aiSuggest .ai-row input")].map(i => i.value.trim()).filter(Boolean);
+        const tasks = steps.map(s => newTask({ title: s }));
+        state.projects.push({
+          id: uid(), ownerId: state.currentUserId, ...data, restricted: [],
+          view: "list", tasks, comments: [], claude: { instructions: "", attachments: [] },
+        });
+        toast("Projet créé ✓");
+      }
+      closeModal(); render();
+    },
+    editProject: (el) => projectModal(state.projects.find(p => p.id === el.dataset.id)),
+
+    addTask: (el) => taskModal(el.dataset.id, null),
+    editTask: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); taskModal(p.id, p.tasks.find(t => t.id === el.dataset.id)); },
+    saveTask: (el) => {
+      const p = state.projects.find(x => x.id === el.dataset.pid);
+      const title = $("#t_title").value.trim(); if (!title) return toast("Intitulé requis");
+      const data = {
+        title, description: $("#t_desc").value.trim(), assigneeId: $("#t_assignee").value,
+        status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value,
+        dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "",
+      };
+      data.done = data.status === "done";
+      if (el.dataset.id) { Object.assign(p.tasks.find(t => t.id === el.dataset.id), data); }
+      else p.tasks.push(newTask(data));
+      delete state.notified[el.dataset.id];
+      closeModal(); render(); toast("Tâche enregistrée ✓");
+    },
+    toggleTask: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); const t = p.tasks.find(t => t.id === el.dataset.id); t.done = el.checked; t.status = el.checked ? "done" : (t.status === "done" ? "todo" : t.status); save(); render(); },
+    delTask: (el) => { if (!confirm("Supprimer cette tâche ?")) return; const p = state.projects.find(x => x.id === el.dataset.pid); p.tasks = p.tasks.filter(t => t.id !== el.dataset.id); save(); render(); },
+    setView: (el) => { state.projects.find(p => p.id === el.dataset.id).view = el.dataset.v; save(); render(); },
+
+    quickAddCheck: (el) => { const inp = $("#quickCheck"); const v = inp.value.trim(); if (!v) return; state.projects.find(p => p.id === el.dataset.id).tasks.push(newTask({ title: v })); save(); render(); },
+
+    notifyChange: (el) => { const w = $("#customWrap"); if (w) w.style.display = el.value === "custom" ? "" : "none"; },
+
+    addComment: (el) => {
+      const p = state.projects.find(x => x.id === el.dataset.id);
+      const txt = $("#commentText").value.trim(); if (!txt) return;
+      p.comments ||= []; p.comments.push({ id: uid(), authorId: state.currentUserId, text: txt, date: new Date().toISOString() });
+      save(); render(); toast("Commentaire ajouté ✓");
+    },
+    delComment: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); p.comments = p.comments.filter(c => c.id !== el.dataset.id); save(); render(); },
+
+    toggleRestrict: (el) => {
+      const p = state.projects.find(x => x.id === el.dataset.pid); p.restricted ||= [];
+      if (el.checked) { if (!p.restricted.includes(el.dataset.id)) p.restricted.push(el.dataset.id); }
+      else p.restricted = p.restricted.filter(id => id !== el.dataset.id);
+      save();
+    },
+
+    saveClaude: (el) => { const p = state.projects.find(x => x.id === el.dataset.id); p.claude ||= {}; p.claude.instructions = $("#claudeInstr").value; save(); toast("Instructions Claude enregistrées ✓"); },
+    addAttach: (el) => { const p = state.projects.find(x => x.id === el.dataset.id); const name = $("#attachName").value.trim(); if (!name) return; p.claude ||= { attachments: [] }; p.claude.attachments ||= []; p.claude.attachments.push({ id: uid(), name, note: $("#attachNote").value.trim() }); save(); render(); },
+    delAttach: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); p.claude.attachments = p.claude.attachments.filter(a => a.id !== el.dataset.id); save(); render(); },
+
+    // tâches autonomes
+    addStandalone: (el) => standaloneModal(el.dataset.key, null),
+    editStandalone: (el) => standaloneModal(el.dataset.key, state[el.dataset.key].find(t => t.id === el.dataset.id)),
+    saveStandalone: (el) => {
+      const key = el.dataset.key;
+      const title = $("#t_title").value.trim(); if (!title) return toast("Intitulé requis");
+      const data = { title, assigneeId: $("#t_assignee").value, status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value, dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "" };
+      data.done = data.status === "done";
+      if (el.dataset.id) Object.assign(state[key].find(t => t.id === el.dataset.id), data);
+      else state[key].push(newTask(data));
+      closeModal(); render(); toast("Tâche enregistrée ✓");
+    },
+    toggleStandalone: (el) => { const t = state[el.dataset.key].find(t => t.id === el.dataset.id); t.done = el.checked; t.status = el.checked ? "done" : t.status; save(); render(); },
+    delStandalone: (el) => { if (!confirm("Supprimer ?")) return; state[el.dataset.key] = state[el.dataset.key].filter(t => t.id !== el.dataset.id); save(); render(); },
+
+    // récurrentes
+    addRecurring: () => recurringModal(null),
+    editRecurring: (el) => recurringModal(state.recurringTasks.find(t => t.id === el.dataset.id)),
+    saveRecurring: (el) => {
+      const title = $("#r_title").value.trim(); if (!title) return toast("Intitulé requis");
+      const data = { title, recurrence: $("#r_recur").value, time: $("#r_time").value, assigneeId: $("#r_assignee").value, labels: readLabels() };
+      if (el.dataset.id) Object.assign(state.recurringTasks.find(t => t.id === el.dataset.id), data);
+      else state.recurringTasks.push({ id: uid(), ...data });
+      closeModal(); render(); toast("Tâche récurrente enregistrée ✓");
+    },
+    delRecurring: (el) => { if (!confirm("Supprimer ?")) return; state.recurringTasks = state.recurringTasks.filter(t => t.id !== el.dataset.id); save(); render(); },
+
+    // membres
+    addMember: () => { const name = $("#m_name").value.trim(); if (!name) return; state.members.push({ id: uid(), name, role: $("#m_role").value, color: AVATAR_COLORS[state.members.length % AVATAR_COLORS.length] }); save(); membersModal(); renderTopbar(); renderSidebar(); },
+    delMember: (el) => { state.members = state.members.filter(m => m.id !== el.dataset.id); if (state.currentUserId === el.dataset.id) state.currentUserId = "me"; save(); membersModal(); render(); },
+  };
+
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-action]");
+    if (!el) return;
+    const fn = actions[el.dataset.action];
+    if (fn) { e.preventDefault(); fn(el, e); }
+  });
+  document.addEventListener("change", (e) => {
+    const el = e.target.closest("[data-action]");
+    if (el && el.dataset.action === "notifyChange") actions.notifyChange(el, e);
+  });
+  $("#whoSelect").addEventListener("change", (e) => { state.currentUserId = e.target.value; state.ui.openProjectId = null; save(); render(); });
+
+  /* ============================================================
+     DÉMARRAGE
+  ============================================================ */
+  render();
+  checkNotifications();
   </script>
 </body>
 </html>
