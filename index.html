@@ -371,11 +371,11 @@
   const RECUR = { daily: "Quotidienne", weekly: "Hebdomadaire", monthly: "Mensuelle", weekday: "Jours ouvrés" };
 
   const SECTIONS = [
-    { id: "projets",     label: "Les projets",                   icon: "📁" },
-    { id: "taches",      label: "Les tâches de projet",          icon: "✅" },
-    { id: "uniques",     label: "Les tâches uniques",            icon: "📌" },
-    { id: "deleguees",   label: "Les tâches uniques déléguées",  icon: "🤝" },
-    { id: "recurrentes", label: "Les tâches récurrentes",        icon: "🔁" },
+    { id: "projets",     label: "Projets",                       icon: "📁" },
+    { id: "taches",      label: "Tâches de projet",              icon: "✅" },
+    { id: "uniques",     label: "Tâches uniques",                icon: "📌" },
+    { id: "deleguees",   label: "Tâches déléguées",              icon: "🤝" },
+    { id: "recurrentes", label: "Tâches récurrentes",            icon: "🔁" },
     { id: "calendrier",  label: "Calendrier",                    icon: "📅" },
     { id: "recherche",   label: "Recherche multicritères",       icon: "🔎" },
   ];
@@ -525,8 +525,50 @@
   function newTask(over = {}) {
     return Object.assign({
       id: uid(), title: "", description: "", status: "todo", assigneeId: "",
-      labels: [], dueDate: "", dueTime: "", notify: "none", notifyCustom: "", done: false,
+      labels: [], dueDate: "", dueTime: "", notify: "none", notifyCustom: "", done: false, projectId: "",
     }, over);
+  }
+
+  /* --- Routage des tâches : le projet + l'assigné déterminent la catégorie --- */
+  // pas de projet + assignée à une autre personne que toi  -> déléguée
+  // pas de projet + (toi ou personne)                      -> unique
+  // un projet choisi                                        -> tâche de projet
+  function findTaskAnywhere(id) {
+    if (!id) return null;
+    for (const p of state.projects) { const t = p.tasks.find(x => x.id === id); if (t) return { task: t, pid: p.id, bucket: "project:" + p.id }; }
+    let t = state.uniqueTasks.find(x => x.id === id); if (t) return { task: t, pid: "", bucket: "unique" };
+    t = state.delegatedTasks.find(x => x.id === id); if (t) return { task: t, pid: "", bucket: "deleg" };
+    return null;
+  }
+  function removeTaskEverywhere(id) {
+    state.projects.forEach(p => { p.tasks = p.tasks.filter(x => x.id !== id); });
+    state.uniqueTasks = state.uniqueTasks.filter(x => x.id !== id);
+    state.delegatedTasks = state.delegatedTasks.filter(x => x.id !== id);
+  }
+  function bucketOf(pid, assigneeId) {
+    if (pid) return "project:" + pid;
+    return (assigneeId && assigneeId !== "me") ? "deleg" : "unique";
+  }
+  function insertTask(t, pid, bucket) {
+    if (pid) { const p = state.projects.find(x => x.id === pid); if (p) { p.tasks.push(t); return; } }
+    if (bucket === "deleg") state.delegatedTasks.push(t); else state.uniqueTasks.push(t);
+  }
+  function commitTask(data, existingId) {
+    const pid = data.projectId || "";
+    const targetBucket = bucketOf(pid, data.assigneeId);
+    const found = findTaskAnywhere(existingId);
+    if (found) {
+      Object.assign(found.task, data); found.task.projectId = pid;
+      if (found.bucket !== targetBucket) { removeTaskEverywhere(found.task.id); insertTask(found.task, pid, targetBucket); }
+      return found.task;
+    }
+    const t = newTask(data); t.projectId = pid;
+    insertTask(t, pid, targetBucket);
+    return t;
+  }
+  function projectOptions(sel) {
+    return `<option value="">Aucun projet</option>` +
+      state.projects.map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.name)}</option>`).join("");
   }
 
   /* ============================================================
@@ -633,7 +675,7 @@
     switch (state.ui.section) {
       case "projets": renderProjects(v); break;
       case "taches": renderProjectTasks(v); break;
-      case "uniques": renderUnique(v, "uniqueTasks", "Les tâches uniques", "Des tâches indépendantes, sans projet."); break;
+      case "uniques": renderUnique(v, "uniqueTasks", "Tâches uniques", "Des tâches indépendantes, sans projet (assigne-les à toi-même)."); break;
       case "deleguees": renderDelegated(v); break;
       case "recurrentes": renderRecurring(v); break;
       case "calendrier": renderCalendar(v); break;
@@ -650,7 +692,7 @@
     v.innerHTML = `
       <div class="page-head">
         <div>
-          <h1>Les projets</h1>
+          <h1>Projets</h1>
           <p>Tu écris le contexte, l'IA propose les étapes. Assigne des personnes, ajoute des étiquettes, des dates et des notifications.</p>
         </div>
         <div class="spacer"></div>
@@ -721,7 +763,8 @@
         </div>
         <div class="spacer"></div>
         ${admin ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
-          <button class="btn sm" data-action="editProject" data-id="${p.id}">⚙︎ Réglages</button>
+          <button class="btn sm" data-action="editProject" data-id="${p.id}">⚙︎ Modifier</button>
+          <button class="btn sm danger" data-action="deleteProject" data-id="${p.id}">🗑 Supprimer</button>
           <button class="btn sm primary" data-action="addTask" data-id="${p.id}">＋ Tâche</button>
         </div>` : ""}
       </div>
@@ -829,15 +872,11 @@
     body.innerHTML = `
       <div class="panel">
         <h2>Checklist du projet</h2>
-        <div class="sub">Une ligne par tâche à accomplir. Coche quand c'est terminé.</div>
+        <div class="sub">Une ligne par tâche. Coche quand c'est terminé. Clique ✎ pour ajouter une date, un assigné, des étiquettes…</div>
         <div class="progress"><i style="width:${pct}%"></i></div>
         <div style="color:var(--muted);font-size:0.85rem;margin:10px 0 16px">${done}/${tasks.length} terminées · ${pct}%</div>
         <div class="tasklist">
-          ${tasks.length ? tasks.map(t => `
-            <label class="task ${t.done ? "done" : ""}" style="cursor:pointer">
-              <input type="checkbox" class="cb" ${t.done ? "checked" : ""} data-action="toggleTask" data-pid="${p.id}" data-id="${t.id}">
-              <div class="body"><div class="title">${esc(t.title)}</div></div>
-            </label>`).join("") : `<div class="empty">Aucune tâche dans la checklist.</div>`}
+          ${tasks.length ? tasks.map(t => taskRow(t, p.id)).join("") : `<div class="empty">Aucune tâche dans la checklist.</div>`}
         </div>
         ${(isAdmin() || p.ownerId === state.currentUserId) ? `
         <div class="row" style="margin-top:16px">
@@ -943,7 +982,7 @@
     rows.sort((a, b) => (a.t.dueDate || "9999") .localeCompare(b.t.dueDate || "9999"));
     v.innerHTML = `
       <div class="page-head"><div>
-        <h1>Les tâches de projet</h1>
+        <h1>Tâches de projet</h1>
         <p>Toutes les tâches issues de tes projets, regroupées et triées par échéance.</p>
       </div></div>
       ${rows.length ? `<div class="tasklist">${rows.map(({ p, t }) => `
@@ -1004,7 +1043,7 @@
     const list = state.delegatedTasks;
     v.innerHTML = `
       <div class="page-head">
-        <div><h1>Les tâches uniques déléguées</h1><p>Des tâches confiées à quelqu'un d'autre. Suis qui fait quoi et où ça en est.</p></div>
+        <div><h1>Tâches déléguées</h1><p>Des tâches sans projet confiées à quelqu'un d'autre (assignée à une autre personne que toi).</p></div>
         <div class="spacer"></div>
         <button class="btn primary" data-action="addStandalone" data-key="delegatedTasks">＋ Déléguer une tâche</button>
       </div>
@@ -1033,7 +1072,7 @@
     const list = state.recurringTasks;
     v.innerHTML = `
       <div class="page-head">
-        <div><h1>Les tâches récurrentes</h1><p>Les tâches qui reviennent régulièrement (quotidiennes, hebdo, mensuelles).</p></div>
+        <div><h1>Tâches récurrentes</h1><p>Les tâches qui reviennent régulièrement (quotidiennes, hebdo, mensuelles).</p></div>
         <div class="spacer"></div>
         <button class="btn primary" data-action="addRecurring">＋ Tâche récurrente</button>
       </div>
@@ -1080,7 +1119,8 @@
     const first = new Date(yy, mm - 1, 1);
     const startDay = (first.getDay() + 6) % 7;            // lundi = 0
     const daysInMonth = new Date(yy, mm, 0).getDate();
-    const items = allSearchableTasks().filter(x => x.t.dueDate && x.t.dueDate.slice(0, 7) === cur);
+    const memFilter = state.ui.calMember || "";
+    const items = allSearchableTasks().filter(x => x.t.dueDate && x.t.dueDate.slice(0, 7) === cur && (!memFilter || x.t.assigneeId === memFilter));
     const byDay = {};
     items.forEach(x => { (byDay[x.t.dueDate] ||= []).push(x); });
     const monthName = first.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -1119,6 +1159,10 @@
         <h2 style="text-transform:capitalize">${monthName}</h2>
         <button class="btn sm" data-action="calNext" aria-label="Mois suivant">→</button>
         <button class="btn sm ghost" data-action="calToday">Aujourd'hui</button>
+        <select class="select" id="calMember" data-change="calMember" style="width:auto;min-width:160px">
+          <option value="">👥 Tous les membres</option>
+          ${state.members.map(m => `<option value="${m.id}" ${memFilter === m.id ? "selected" : ""}>${esc(m.name)}</option>`).join("")}
+        </select>
         <div style="flex:1"></div>
         <span style="color:var(--ink-mute);font-size:0.85rem">${items.length} tâche(s) datée(s) ce mois</span>
       </div>
@@ -1300,6 +1344,7 @@
         </div>
       </div>
       <div class="modal-foot">
+        ${existing ? `<button class="btn danger" data-action="deleteProject" data-id="${existing.id}" style="margin-right:auto">🗑 Supprimer</button>` : ""}
         <button class="btn ghost" data-action="closeModal">Annuler</button>
         <button class="btn primary" data-action="saveProject" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Créer le projet"}</button>
       </div>`);
@@ -1318,6 +1363,7 @@
       <div class="modal-sub">Étiquettes, assignation, échéance et rappel.</div>
       <div class="field"><label>Intitulé</label><input class="input" id="t_title" value="${esc(t.title)}" placeholder="Ex : Maquette page d'accueil"></div>
       <div class="field"><label>Description</label><textarea class="textarea" id="t_desc" placeholder="Détails…">${esc(t.description || "")}</textarea></div>
+      <div class="field"><label>📁 Projet</label><span class="hint">Rattache cette tâche à un projet (ou « Aucun projet »).</span><select class="select" id="t_project">${projectOptions(existing ? (existing.projectId || pid) : pid)}</select></div>
       <div class="row">
         <div class="field"><label>Assignée à</label><select class="select" id="t_assignee">${memberOptions(t.assigneeId)}</select></div>
         <div class="field"><label>Statut</label><select class="select" id="t_status">${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${t.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
@@ -1336,6 +1382,7 @@
         <label>Date/heure du rappel</label><input class="input" type="datetime-local" id="t_custom" value="${t.notifyCustom || ""}">
       </div>
       <div class="modal-foot">
+        ${existing ? `<button class="btn danger" data-action="delTaskModal" data-id="${existing.id}" style="margin-right:auto">🗑 Supprimer</button>` : ""}
         <button class="btn ghost" data-action="closeModal">Annuler</button>
         <button class="btn primary" data-action="saveTask" data-pid="${pid}" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Ajouter"}</button>
       </div>`);
@@ -1354,6 +1401,7 @@
       <h2>${existing ? "Modifier" : isDeleg ? "Déléguer une tâche" : "Nouvelle tâche"}</h2>
       <div class="modal-sub">${isDeleg ? "Confie cette tâche à un membre." : "Une tâche indépendante."}</div>
       <div class="field"><label>Intitulé</label><input class="input" id="t_title" value="${esc(t.title)}" placeholder="Que faut-il faire ?"></div>
+      <div class="field"><label>📁 Projet</label><span class="hint">« Aucun projet » = tâche unique. Choisis un projet pour la rattacher.</span><select class="select" id="t_project">${projectOptions(existing ? (existing.projectId || "") : "")}</select></div>
       <div class="row">
         <div class="field"><label>${isDeleg ? "Déléguée à" : "Assignée à"}</label><select class="select" id="t_assignee">${memberOptions(t.assigneeId)}</select></div>
         <div class="field"><label>Statut</label><select class="select" id="t_status">${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${t.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></div>
@@ -1366,6 +1414,7 @@
       <div class="field"><label>🔔 Notification</label><select class="select" id="t_notify" data-action="notifyChange">${notifOptions(t.notify)}</select></div>
       <div class="field" id="customWrap" style="${showCustom ? "" : "display:none"}"><label>Date/heure du rappel</label><input class="input" type="datetime-local" id="t_custom" value="${t.notifyCustom || ""}"></div>
       <div class="modal-foot">
+        ${existing ? `<button class="btn danger" data-action="delTaskModal" data-id="${existing.id}" style="margin-right:auto">🗑 Supprimer</button>` : ""}
         <button class="btn ghost" data-action="closeModal">Annuler</button>
         <button class="btn primary" data-action="saveStandalone" data-key="${key}" ${existing ? `data-id="${existing.id}"` : ""}>${existing ? "Enregistrer" : "Ajouter"}</button>
       </div>`);
@@ -1447,6 +1496,7 @@
     calPrev: () => { state.ui.calMonth = shiftMonth(curCalMonth(), -1); render(); },
     calNext: () => { state.ui.calMonth = shiftMonth(curCalMonth(), 1); render(); },
     calToday: () => { state.ui.calMonth = todayISO().slice(0, 7); render(); },
+    calMember: (el) => { state.ui.calMember = el.value; render(); },
     resetSearch: () => { state.ui.search = {}; save(); render(); },
     dateChange: (el) => { const time = document.getElementById("t_time"); if (!time) return; time.min = (el.value === todayISO()) ? nowHHMM() : ""; },
 
@@ -1480,24 +1530,25 @@
     addTask: (el) => taskModal(el.dataset.id, null),
     editTask: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); taskModal(p.id, p.tasks.find(t => t.id === el.dataset.id)); },
     saveTask: (el) => {
-      const p = state.projects.find(x => x.id === el.dataset.pid);
       const title = $("#t_title").value.trim(); if (!title) return toast("Intitulé requis");
       const data = {
         title, description: $("#t_desc").value.trim(), assigneeId: $("#t_assignee").value,
         status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value,
         dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "",
+        projectId: $("#t_project") ? $("#t_project").value : (el.dataset.pid || ""),
       };
       data.done = data.status === "done";
       if (!el.dataset.id && data.dueDate && data.dueTime && new Date(`${data.dueDate}T${data.dueTime}`).getTime() < Date.now() - 60000) {
         return toast("⛔ L'heure ne peut pas être dans le passé");
       }
-      if (el.dataset.id) { Object.assign(p.tasks.find(t => t.id === el.dataset.id), data); }
-      else p.tasks.push(newTask(data));
-      delete state.notified[el.dataset.id];
+      const t = commitTask(data, el.dataset.id);
+      delete state.notified[t.id];
       closeModal(); render(); toast("Tâche enregistrée ✓");
     },
     toggleTask: (el) => { const p = state.projects.find(x => x.id === el.dataset.pid); const t = p.tasks.find(t => t.id === el.dataset.id); t.done = el.checked; t.status = el.checked ? "done" : (t.status === "done" ? "todo" : t.status); save(); render(); },
     delTask: (el) => { if (!confirm("Supprimer cette tâche ?")) return; const p = state.projects.find(x => x.id === el.dataset.pid); p.tasks = p.tasks.filter(t => t.id !== el.dataset.id); save(); render(); },
+    delTaskModal: (el) => { if (!confirm("Supprimer définitivement cette tâche ?")) return; removeTaskEverywhere(el.dataset.id); save(); closeModal(); render(); toast("Tâche supprimée"); },
+    deleteProject: (el) => { if (!confirm("Supprimer définitivement ce projet et toutes ses tâches ?")) return; state.projects = state.projects.filter(p => p.id !== el.dataset.id); state.ui.openProjectId = null; save(); render(); toast("Projet supprimé"); },
     setView: (el) => { state.projects.find(p => p.id === el.dataset.id).view = el.dataset.v; save(); render(); },
 
     quickAddCheck: (el) => { const inp = $("#quickCheck"); const v = inp.value.trim(); if (!v) return; state.projects.find(p => p.id === el.dataset.id).tasks.push(newTask({ title: v })); save(); render(); },
@@ -1527,15 +1578,13 @@
     addStandalone: (el) => standaloneModal(el.dataset.key, null),
     editStandalone: (el) => standaloneModal(el.dataset.key, state[el.dataset.key].find(t => t.id === el.dataset.id)),
     saveStandalone: (el) => {
-      const key = el.dataset.key;
       const title = $("#t_title").value.trim(); if (!title) return toast("Intitulé requis");
-      const data = { title, assigneeId: $("#t_assignee").value, status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value, dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "" };
+      const data = { title, assigneeId: $("#t_assignee").value, status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value, dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "", projectId: $("#t_project") ? $("#t_project").value : "" };
       data.done = data.status === "done";
       if (!el.dataset.id && data.dueDate && data.dueTime && new Date(`${data.dueDate}T${data.dueTime}`).getTime() < Date.now() - 60000) {
         return toast("⛔ L'heure ne peut pas être dans le passé");
       }
-      if (el.dataset.id) Object.assign(state[key].find(t => t.id === el.dataset.id), data);
-      else state[key].push(newTask(data));
+      commitTask(data, el.dataset.id);
       closeModal(); render(); toast("Tâche enregistrée ✓");
     },
     toggleStandalone: (el) => { const t = state[el.dataset.key].find(t => t.id === el.dataset.id); t.done = el.checked; t.status = el.checked ? "done" : t.status; save(); render(); },
