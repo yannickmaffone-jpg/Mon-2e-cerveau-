@@ -267,6 +267,12 @@
     /* ---------- Recherche ---------- */
     .search-summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
 
+    /* ---------- Indicateur de synchro ---------- */
+    .sync-badge { font-size: 0.75rem; font-weight: 700; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-mute); white-space: nowrap; }
+    .sync-badge.ok { color: var(--green); background: var(--green-soft); border-color: rgba(46,125,79,0.3); }
+    .sync-badge.syncing { color: var(--accent-dark); background: var(--accent-soft); border-color: rgba(0,96,143,0.25); }
+    .sync-badge.off { color: var(--amber); background: var(--amber-soft); border-color: rgba(184,134,11,0.3); }
+
     @media (max-width: 920px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 10px; }
@@ -315,6 +321,7 @@
       </div>
       <div class="topbar-spacer"></div>
       <div class="topbar-tools">
+        <span class="sync-badge" id="syncBadge" title="État de la synchronisation en ligne">⏳</span>
         <div class="who" title="Choisis qui consulte l'app : un client ne voit que ses projets/tâches et jamais le panneau Claude.">
           <span>Vue&nbsp;:</span>
           <select id="whoSelect"></select>
@@ -397,22 +404,28 @@
   }
 
   let state = loadState();
+  // --- synchro en ligne (espace partagé) ---
+  let lastSyncedSig = null, syncing = false, online = true, pushTimer = null;
 
+  function normalize(s) {
+    s.members ||= []; s.projects ||= []; s.uniqueTasks ||= [];
+    s.delegatedTasks ||= []; s.recurringTasks ||= []; s.notified ||= {};
+    s.ui ||= { section: "projets", openProjectId: null, projectTab: "tableau" };
+    if (!s.members.find(m => m.id === s.currentUserId)) s.currentUserId = s.members[0]?.id || "me";
+    return s;
+  }
   function loadState() {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return defaultState();
-      const s = JSON.parse(raw);
-      // garde-fous
-      s.members ||= []; s.projects ||= []; s.uniqueTasks ||= [];
-      s.delegatedTasks ||= []; s.recurringTasks ||= []; s.notified ||= {};
-      s.ui ||= { section: "projets", openProjectId: null, projectTab: "tableau" };
-      if (!s.members.find(m => m.id === s.currentUserId)) s.currentUserId = s.members[0]?.id || "me";
-      return s;
+      return normalize(JSON.parse(raw));
     } catch (e) { return defaultState(); }
   }
 
-  function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  function save() {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    syncOnSave();
+  }
 
   /* ============================================================
      HELPERS
@@ -1562,10 +1575,82 @@
   $("#whoSelect").addEventListener("change", (e) => { state.currentUserId = e.target.value; state.ui.openProjectId = null; save(); render(); });
 
   /* ============================================================
+     SYNCHRONISATION EN LIGNE (espace partagé équipe)
+     - Charge l'état depuis le serveur au démarrage
+     - Renvoie automatiquement les modifications (anti-rebond)
+     - Protection anti-perte : à égalité de date, le jeu de données
+       le plus riche gagne (migration initiale en sécurité)
+  ============================================================ */
+  const SYNC_URL = "/api/data";
+
+  // Signature des DONNÉES seulement (exclut la navigation/utilisateur courant)
+  function dataSignature() {
+    return JSON.stringify([state.members, state.projects, state.uniqueTasks, state.delegatedTasks, state.recurringTasks]);
+  }
+  function itemCount(s) {
+    if (!s) return -1;
+    let n = (s.members?.length || 0) + (s.uniqueTasks?.length || 0) + (s.delegatedTasks?.length || 0) + (s.recurringTasks?.length || 0);
+    (s.projects || []).forEach(p => { n += 1 + ((p.tasks && p.tasks.length) || 0); });
+    return n;
+  }
+  function updateSyncBadge() {
+    const el = $("#syncBadge"); if (!el) return;
+    if (syncing) { el.textContent = "⏳ Sync…"; el.className = "sync-badge syncing"; }
+    else if (online) { el.textContent = "✓ Synchronisé"; el.className = "sync-badge ok"; }
+    else { el.textContent = "⚠︎ Hors-ligne"; el.className = "sync-badge off"; }
+  }
+  function adopt(srv) {
+    const ui = state.ui, user = state.currentUserId;   // garder la navigation locale
+    state = srv; state.ui = ui; state.currentUserId = user;
+    normalize(state);
+    lastSyncedSig = dataSignature();
+    render();
+  }
+  function syncOnSave() {
+    if (lastSyncedSig === null) return;                // pas encore initialisé
+    if (dataSignature() !== lastSyncedSig) { state._v = Date.now(); schedulePush(); }
+  }
+  function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 1000); }
+  async function pushNow() {
+    const sigAtSend = dataSignature();
+    try {
+      syncing = true; updateSyncBadge();
+      const r = await fetch(SYNC_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: state }) });
+      if (!r.ok) throw new Error("push");
+      online = true; lastSyncedSig = sigAtSend;
+    } catch (e) { online = false; }
+    finally { syncing = false; updateSyncBadge(); }
+  }
+  async function syncPull() {
+    try {
+      const r = await fetch(SYNC_URL, { cache: "no-store" });
+      if (!r.ok) throw new Error("pull");
+      const j = await r.json();
+      online = true;
+      const srv = j.data;
+      const sv = (srv && srv._v) || 0, lv = state._v || 0;
+      const serverWins = srv && (sv > lv || (sv === lv && itemCount(srv) >= itemCount(state)));
+      if (serverWins) {
+        if ((srv._v || 0) !== lv || itemCount(srv) !== itemCount(state)) adopt(srv);
+      } else if (dataSignature() !== lastSyncedSig || !srv || lv > sv) {
+        pushNow();
+      }
+      updateSyncBadge();
+    } catch (e) { online = false; updateSyncBadge(); }
+  }
+
+  /* ============================================================
      DÉMARRAGE
   ============================================================ */
+  lastSyncedSig = dataSignature();   // référence : l'état local n'a pas encore changé
   render();
   checkNotifications();
+  updateSyncBadge();
+  syncPull();
+  setInterval(() => { if (!document.hidden) syncPull(); }, 8000);
+  window.addEventListener("focus", syncPull);
+  window.addEventListener("online", () => { online = true; updateSyncBadge(); syncPull(); });
+  window.addEventListener("offline", () => { online = false; updateSyncBadge(); });
   </script>
 </body>
 </html>
