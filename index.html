@@ -224,7 +224,7 @@
     .empty { text-align: center; padding: 60px 20px; color: var(--ink-mute); }
     .empty .big { font-size: 2.4rem; margin-bottom: 12px; }
     .empty h3 { color: var(--ink) !important; }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--accent-dark); border: 1px solid var(--accent); color: #fff; padding: 12px 20px; border-radius: 12px; font-weight: 600; z-index: 200; opacity: 0; transition: all 0.3s ease; box-shadow: 0 20px 60px rgba(16,18,24,0.3); }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--accent-dark); border: 1px solid var(--accent); color: #fff; padding: 12px 20px; border-radius: 12px; font-weight: 600; z-index: 200; opacity: 0; pointer-events: none; transition: all 0.3s ease; box-shadow: 0 20px 60px rgba(16,18,24,0.3); }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     .ai-suggest { display: grid; gap: 8px; margin-top: 10px; }
@@ -378,6 +378,7 @@
   ============================================================ */
   const uid = () => Math.random().toString(36).slice(2, 10);
   const todayISO = () => new Date().toISOString().slice(0, 10);
+  const nowHHMM = () => { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 
   function defaultState() {
     const me = { id: "me", name: "Moi", role: "admin", color: AVATAR_COLORS[0] };
@@ -1294,6 +1295,10 @@
   /* ---- Modale : tâche de projet ---- */
   function taskModal(pid, existing) {
     const t = existing || newTask();
+    const isNew = !existing;
+    if (isNew) { if (!t.dueDate) t.dueDate = todayISO(); if (!t.dueTime) t.dueTime = nowHHMM(); }
+    const minDate = isNew ? todayISO() : "";
+    const minTime = (isNew && t.dueDate === todayISO()) ? nowHHMM() : "";
     const showCustom = t.notify === "custom";
     openModal(`
       <h2>${existing ? "Modifier la tâche" : "Nouvelle tâche"}</h2>
@@ -1306,8 +1311,8 @@
       </div>
       <div class="field"><label>Étiquette (uniquement sur cette tâche)</label>${labelChecks(t.labels)}</div>
       <div class="row">
-        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" value="${t.dueDate || ""}"></div>
-        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}"></div>
+        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" data-change="dateChange" value="${t.dueDate || ""}" min="${minDate}"></div>
+        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}" min="${minTime}"></div>
       </div>
       <div class="field">
         <label>🔔 Notification</label>
@@ -1326,6 +1331,10 @@
   /* ---- Modale : tâche autonome (unique / déléguée) ---- */
   function standaloneModal(key, existing) {
     const t = existing || newTask();
+    const isNew = !existing;
+    if (isNew) { if (!t.dueDate) t.dueDate = todayISO(); if (!t.dueTime) t.dueTime = nowHHMM(); }
+    const minDate = isNew ? todayISO() : "";
+    const minTime = (isNew && t.dueDate === todayISO()) ? nowHHMM() : "";
     const isDeleg = key === "delegatedTasks";
     const showCustom = t.notify === "custom";
     openModal(`
@@ -1338,8 +1347,8 @@
       </div>
       <div class="field"><label>Étiquettes</label>${labelChecks(t.labels)}</div>
       <div class="row">
-        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" value="${t.dueDate || ""}"></div>
-        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}"></div>
+        <div class="field"><label>📅 Jour</label><input class="input" type="date" id="t_date" data-change="dateChange" value="${t.dueDate || ""}" min="${minDate}"></div>
+        <div class="field"><label>🕐 Heure</label><input class="input" type="time" id="t_time" value="${t.dueTime || ""}" min="${minTime}"></div>
       </div>
       <div class="field"><label>🔔 Notification</label><select class="select" id="t_notify" data-action="notifyChange">${notifOptions(t.notify)}</select></div>
       <div class="field" id="customWrap" style="${showCustom ? "" : "display:none"}"><label>Date/heure du rappel</label><input class="input" type="datetime-local" id="t_custom" value="${t.notifyCustom || ""}"></div>
@@ -1426,6 +1435,7 @@
     calNext: () => { state.ui.calMonth = shiftMonth(curCalMonth(), 1); render(); },
     calToday: () => { state.ui.calMonth = todayISO().slice(0, 7); render(); },
     resetSearch: () => { state.ui.search = {}; save(); render(); },
+    dateChange: (el) => { const time = document.getElementById("t_time"); if (!time) return; time.min = (el.value === todayISO()) ? nowHHMM() : ""; },
 
     saveProject: (el) => {
       const name = $("#p_name").value.trim();
@@ -1465,6 +1475,9 @@
         dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "",
       };
       data.done = data.status === "done";
+      if (!el.dataset.id && data.dueDate && data.dueTime && new Date(`${data.dueDate}T${data.dueTime}`).getTime() < Date.now() - 60000) {
+        return toast("⛔ L'heure ne peut pas être dans le passé");
+      }
       if (el.dataset.id) { Object.assign(p.tasks.find(t => t.id === el.dataset.id), data); }
       else p.tasks.push(newTask(data));
       delete state.notified[el.dataset.id];
@@ -1505,6 +1518,9 @@
       const title = $("#t_title").value.trim(); if (!title) return toast("Intitulé requis");
       const data = { title, assigneeId: $("#t_assignee").value, status: $("#t_status").value, labels: readLabels(), dueDate: $("#t_date").value, dueTime: $("#t_time").value, notify: $("#t_notify").value, notifyCustom: $("#t_custom")?.value || "" };
       data.done = data.status === "done";
+      if (!el.dataset.id && data.dueDate && data.dueTime && new Date(`${data.dueDate}T${data.dueTime}`).getTime() < Date.now() - 60000) {
+        return toast("⛔ L'heure ne peut pas être dans le passé");
+      }
       if (el.dataset.id) Object.assign(state[key].find(t => t.id === el.dataset.id), data);
       else state[key].push(newTask(data));
       closeModal(); render(); toast("Tâche enregistrée ✓");
@@ -1538,6 +1554,10 @@
   document.addEventListener("change", (e) => {
     const el = e.target.closest("[data-action]");
     if (el && el.dataset.action === "notifyChange") actions.notifyChange(el, e);
+  });
+  document.addEventListener("change", (e) => {
+    const el = e.target.closest("[data-change]");
+    if (el && actions[el.dataset.change]) actions[el.dataset.change](el, e);
   });
   $("#whoSelect").addEventListener("change", (e) => { state.currentUserId = e.target.value; state.ui.openProjectId = null; save(); render(); });
 
