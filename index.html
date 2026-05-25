@@ -243,6 +243,30 @@
     .progress { height: 7px; background: var(--line-soft); border-radius: 999px; overflow: hidden; margin-top: 12px; }
     .progress > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 999px; transition: width 0.3s; }
 
+    /* ---------- Calendrier ---------- */
+    .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .cal-head h2 { font-size: 1.2rem; color: var(--ink); font-weight: 700; min-width: 170px; }
+    .cal-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; font-size: 0.78rem; color: var(--ink-soft); }
+    .cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .cal-legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    .dot.todo { background: var(--ink-mute); } .dot.doing { background: var(--accent); }
+    .dot.done { background: var(--green); } .dot.urgent { background: var(--red); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-dow { text-align: center; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); font-weight: 700; padding: 4px 0; }
+    .cal-cell { min-height: 98px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+    .cal-cell.out { background: transparent; border-color: transparent; }
+    .cal-cell.today { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+    .cal-daynum { font-size: 0.78rem; color: var(--ink-soft); font-weight: 700; }
+    .cal-cell.today .cal-daynum { color: var(--accent-dark); }
+    .cal-chip { font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--panel-2); color: var(--ink); border-left: 3px solid var(--ink-mute); }
+    .cal-chip.doing { border-left-color: var(--accent); }
+    .cal-chip.done { border-left-color: var(--green); color: var(--ink-mute); text-decoration: line-through; }
+    .cal-chip.urgent { border-left-color: var(--red); }
+    .cal-more { font-size: 0.68rem; color: var(--ink-mute); }
+
+    /* ---------- Recherche ---------- */
+    .search-summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+
     @media (max-width: 920px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 10px; }
@@ -250,6 +274,11 @@
       .nav-item { white-space: nowrap; }
       .kanban { grid-template-columns: 1fr; }
       .main { padding: 20px 16px 60px; }
+    }
+    @media (max-width: 680px) {
+      .cal-cell { min-height: 64px; padding: 4px; }
+      .cal-chip { font-size: 0.6rem; padding: 1px 4px; }
+      .cal-grid { gap: 4px; }
     }
   </style>
 </head>
@@ -340,6 +369,8 @@
     { id: "uniques",     label: "Les tâches uniques",            icon: "📌" },
     { id: "deleguees",   label: "Les tâches uniques déléguées",  icon: "🤝" },
     { id: "recurrentes", label: "Les tâches récurrentes",        icon: "🔁" },
+    { id: "calendrier",  label: "Calendrier",                    icon: "📅" },
+    { id: "recherche",   label: "Recherche multicritères",       icon: "🔎" },
   ];
 
   /* ============================================================
@@ -402,6 +433,21 @@
     const d = new Date(iso);
     if (isNaN(d)) return iso;
     return d.toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+  // Lundi -> Dimanche de la semaine d'une date (ISO)
+  function weekRange(d) {
+    const dt = d ? new Date(d) : new Date();
+    const day = (dt.getDay() + 6) % 7; // lundi = 0
+    const mon = new Date(dt); mon.setDate(dt.getDate() - day);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const f = (x) => x.toISOString().slice(0, 10);
+    return [f(mon), f(sun)];
+  }
+  const curCalMonth = () => state.ui.calMonth || todayISO().slice(0, 7);
+  function shiftMonth(ym, delta) {
+    let [y, m] = ym.split("-").map(Number); m += delta;
+    while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; }
+    return `${y}-${String(m).padStart(2, "0")}`;
   }
   function avatar(m, big) {
     if (!m) return "";
@@ -576,6 +622,8 @@
       case "uniques": renderUnique(v, "uniqueTasks", "Les tâches uniques", "Des tâches indépendantes, sans projet."); break;
       case "deleguees": renderDelegated(v); break;
       case "recurrentes": renderRecurring(v); break;
+      case "calendrier": renderCalendar(v); break;
+      case "recherche": renderSearch(v); break;
       default: renderProjects(v);
     }
   }
@@ -999,6 +1047,186 @@
   const emptyBox = (ico, t, s) => `<div class="empty"><div class="big">${ico}</div><h3 style="color:#e2e8f0;margin-bottom:6px">${esc(t)}</h3><p>${esc(s)}</p></div>`;
 
   /* ============================================================
+     TOUTES LES TÂCHES (pour calendrier & recherche) — respecte les droits
+  ============================================================ */
+  function allSearchableTasks() {
+    const out = [];
+    visibleProjects().forEach(p => visibleTasks(p).forEach(t => out.push({ t, kind: "projet", pid: p.id, ctx: p.name })));
+    state.uniqueTasks.forEach(t => out.push({ t, kind: "unique", ctx: "Tâche unique" }));
+    state.delegatedTasks.forEach(t => out.push({ t, kind: "deleguee", ctx: "Tâche déléguée" }));
+    return out;
+  }
+
+  /* ============================================================
+     VUE : CALENDRIER
+  ============================================================ */
+  function renderCalendar(v) {
+    const cur = curCalMonth();
+    const [yy, mm] = cur.split("-").map(Number);
+    const first = new Date(yy, mm - 1, 1);
+    const startDay = (first.getDay() + 6) % 7;            // lundi = 0
+    const daysInMonth = new Date(yy, mm, 0).getDate();
+    const items = allSearchableTasks().filter(x => x.t.dueDate && x.t.dueDate.slice(0, 7) === cur);
+    const byDay = {};
+    items.forEach(x => { (byDay[x.t.dueDate] ||= []).push(x); });
+    const monthName = first.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    const dow = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+    const chip = (x) => {
+      const t = x.t;
+      const urgent = (t.labels || []).includes("urgent");
+      const cls = (t.done ? "done" : (t.status === "doing" ? "doing" : "todo")) + (urgent && !t.done ? " urgent" : "");
+      const act = x.kind === "projet"
+        ? `data-action="openProject" data-id="${x.pid}"`
+        : `data-action="goSection" data-id="${x.kind === "unique" ? "uniques" : "deleguees"}"`;
+      return `<div class="cal-chip ${cls}" ${act} title="${esc(t.title)} — ${esc(x.ctx)} (${STATUS[t.status || "todo"]})">${t.done ? "✓ " : ""}${esc(t.title)}</div>`;
+    };
+
+    let cells = dow.map(d => `<div class="cal-dow">${d}</div>`).join("");
+    for (let i = 0; i < startDay; i++) cells += `<div class="cal-cell out"></div>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${cur}-${String(d).padStart(2, "0")}`;
+      const list = byDay[iso] || [];
+      const isToday = iso === todayISO();
+      cells += `<div class="cal-cell ${isToday ? "today" : ""}">
+        <div class="cal-daynum">${d}</div>
+        ${list.slice(0, 3).map(chip).join("")}
+        ${list.length > 3 ? `<div class="cal-more">+${list.length - 3} autre(s)</div>` : ""}
+      </div>`;
+    }
+
+    v.innerHTML = `
+      <div class="page-head"><div>
+        <h1>Calendrier</h1>
+        <p>Chaque tâche datée et son avancement. Clique une tâche pour l'ouvrir.</p>
+      </div></div>
+      <div class="cal-head">
+        <button class="btn sm" data-action="calPrev" aria-label="Mois précédent">←</button>
+        <h2 style="text-transform:capitalize">${monthName}</h2>
+        <button class="btn sm" data-action="calNext" aria-label="Mois suivant">→</button>
+        <button class="btn sm ghost" data-action="calToday">Aujourd'hui</button>
+        <div style="flex:1"></div>
+        <span style="color:var(--ink-mute);font-size:0.85rem">${items.length} tâche(s) datée(s) ce mois</span>
+      </div>
+      <div class="cal-legend">
+        <span><i class="dot todo"></i> À faire</span>
+        <span><i class="dot doing"></i> En cours</span>
+        <span><i class="dot done"></i> Terminé</span>
+        <span><i class="dot urgent"></i> Urgent</span>
+      </div>
+      <div class="cal-grid">${cells}</div>`;
+  }
+
+  /* ============================================================
+     VUE : RECHERCHE MULTICRITÈRES (requêtes croisées)
+  ============================================================ */
+  function renderSearch(v) {
+    const f = state.ui.search || {};
+    const memOpts = `<option value="">Toutes les personnes</option>` +
+      state.members.map(m => `<option value="${m.id}" ${f.person === m.id ? "selected" : ""}>${esc(m.name)}</option>`).join("");
+    const sel = (cur, v2) => cur === v2 ? "selected" : "";
+    v.innerHTML = `
+      <div class="page-head"><div>
+        <h1>Recherche multicritères</h1>
+        <p>Croise les critères : ex. les tâches <b>urgentes</b>, à faire <b>cette semaine</b>, par <b>telle personne</b>.</p>
+      </div></div>
+      <div class="panel">
+        <div class="field"><label>Mots-clés</label><input class="input" id="s_q" data-s value="${esc(f.q || "")}" placeholder="Titre, description, projet…"></div>
+        <div class="row">
+          <div class="field"><label>Étiquette</label>
+            <select class="select" id="s_label" data-s>
+              <option value="">Toutes</option>
+              <option value="urgent" ${sel(f.label, "urgent")}>Urgent</option>
+              <option value="important" ${sel(f.label, "important")}>Important</option>
+            </select>
+          </div>
+          <div class="field"><label>Statut</label>
+            <select class="select" id="s_status" data-s>
+              <option value="">Tous</option>
+              <option value="todo" ${sel(f.status, "todo")}>À faire</option>
+              <option value="doing" ${sel(f.status, "doing")}>En cours</option>
+              <option value="done" ${sel(f.status, "done")}>Terminé</option>
+            </select>
+          </div>
+          <div class="field"><label>Personne</label><select class="select" id="s_person" data-s>${memOpts}</select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Type</label>
+            <select class="select" id="s_type" data-s>
+              <option value="">Tous types</option>
+              <option value="projet" ${sel(f.type, "projet")}>Tâches de projet</option>
+              <option value="unique" ${sel(f.type, "unique")}>Tâches uniques</option>
+              <option value="deleguee" ${sel(f.type, "deleguee")}>Tâches déléguées</option>
+            </select>
+          </div>
+          <div class="field"><label>Période</label>
+            <select class="select" id="s_period" data-s>
+              <option value="">Toutes les dates</option>
+              <option value="today" ${sel(f.period, "today")}>Aujourd'hui</option>
+              <option value="week" ${sel(f.period, "week")}>Cette semaine</option>
+              <option value="month" ${sel(f.period, "month")}>Ce mois</option>
+              <option value="date" ${sel(f.period, "date")}>Un jour précis…</option>
+            </select>
+          </div>
+          <div class="field"><label>Jour précis</label><input class="input" type="date" id="s_date" data-s value="${f.date || ""}"></div>
+        </div>
+        <div style="text-align:right"><button class="btn sm ghost" data-action="resetSearch">Réinitialiser</button></div>
+      </div>
+      <div id="searchResults"></div>`;
+
+    const run = () => {
+      const val = (id) => { const e = $("#" + id); return e ? e.value : ""; };
+      const flt = { q: val("s_q"), label: val("s_label"), status: val("s_status"), person: val("s_person"), type: val("s_type"), period: val("s_period"), date: val("s_date") };
+      state.ui.search = flt; save();
+      let res = allSearchableTasks();
+      if (flt.type) res = res.filter(x => x.kind === flt.type);
+      if (flt.q) { const q = flt.q.toLowerCase(); res = res.filter(x => (x.t.title + " " + (x.t.description || "") + " " + x.ctx).toLowerCase().includes(q)); }
+      if (flt.label) res = res.filter(x => (x.t.labels || []).includes(flt.label));
+      if (flt.status) res = res.filter(x => (x.t.status || "todo") === flt.status);
+      if (flt.person) res = res.filter(x => x.t.assigneeId === flt.person);
+      if (flt.period === "today") res = res.filter(x => x.t.dueDate === todayISO());
+      else if (flt.period === "week") { const [a, b] = weekRange(); res = res.filter(x => x.t.dueDate && x.t.dueDate >= a && x.t.dueDate <= b); }
+      else if (flt.period === "month") { const m = todayISO().slice(0, 7); res = res.filter(x => x.t.dueDate && x.t.dueDate.slice(0, 7) === m); }
+      else if (flt.period === "date" && flt.date) res = res.filter(x => x.t.dueDate === flt.date);
+      res.sort((a, b) => (a.t.dueDate || "9999").localeCompare(b.t.dueDate || "9999"));
+
+      const projects = new Set(res.filter(x => x.kind === "projet").map(x => x.pid));
+      const box = $("#searchResults");
+      if (!box) return;
+      box.innerHTML = `
+        <div class="search-summary">
+          <span class="pill">${res.length} tâche(s)</span>
+          ${projects.size ? `<span class="pill">${projects.size} projet(s) concerné(s)</span>` : ""}
+          <span class="pill">${res.filter(x => !x.t.done).length} à faire</span>
+        </div>
+        ${res.length ? `<div class="tasklist">${res.map(x => searchRow(x)).join("")}</div>` : emptyBox("🔎", "Aucun résultat", "Ajuste tes critères de recherche.")}`;
+    };
+    v.querySelectorAll("[data-s]").forEach(el => { el.addEventListener("input", run); el.addEventListener("change", run); });
+    run();
+  }
+
+  function searchRow(x) {
+    const t = x.t, m = member(t.assigneeId);
+    const late = t.dueDate && !t.done && new Date(`${t.dueDate}T${t.dueTime || "23:59"}`) < new Date();
+    const toggle = x.kind === "projet"
+      ? `data-action="toggleTask" data-pid="${x.pid}"`
+      : `data-action="toggleStandalone" data-key="${x.kind === "unique" ? "uniqueTasks" : "delegatedTasks"}"`;
+    return `<div class="task ${t.done ? "done" : ""}">
+      <input type="checkbox" class="cb" ${t.done ? "checked" : ""} ${toggle} data-id="${t.id}">
+      <div class="body">
+        <div class="title">${esc(t.title)}</div>
+        <div class="submeta">
+          <span class="pill" ${x.kind === "projet" ? `data-action="openProject" data-id="${x.pid}" style="cursor:pointer"` : ""}>${x.kind === "projet" ? "📁 " + esc(x.ctx) : esc(x.ctx)}</span>
+          ${(t.labels || []).map(l => `<span class="tag ${l}">${l}</span>`).join("")}
+          <span class="tag soft">${STATUS[t.status || "todo"]}</span>
+          ${m ? avatar(m) + " " + esc(m.name) : ""}
+          ${t.dueDate ? `<span class="due ${late ? "late" : ""}">📅 ${fmtDate(t.dueDate)}${t.dueTime ? " " + t.dueTime : ""}${late ? " · en retard" : ""}</span>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ============================================================
      MODALES
   ============================================================ */
   function openModal(html) { $("#modal").innerHTML = html; $("#overlay").classList.add("open"); }
@@ -1031,8 +1259,20 @@
         <span class="hint">Décris l'objectif, le client, les contraintes… puis clique « Générer les étapes ».</span>
         <textarea class="textarea" id="p_context" placeholder="Ex : Le client veut un nouveau site vitrine moderne, livraison dans 6 semaines, budget serré, besoin d'un formulaire de contact et d'un blog.">${esc(p.context)}</textarea>
       </div>
-      ${!existing ? `<button class="btn sm" data-action="genSteps">✨ Générer les étapes (IA)</button>
-      <div class="ai-suggest" id="aiSuggest"></div>` : ""}
+      ${!existing ? `
+      <div class="field" style="margin-top:14px">
+        <label>Étapes / checklist du projet</label>
+        <span class="hint">Écris tes étapes à la main (recommandé). L'IA n'est qu'une aide optionnelle.</span>
+        <div class="ai-suggest" id="aiSuggest">
+          <div class="ai-row"><input placeholder="Étape 1…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button></div>
+          <div class="ai-row"><input placeholder="Étape 2…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button></div>
+          <div class="ai-row"><input placeholder="Étape 3…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn xs" data-action="addAiRow">＋ Ajouter une étape</button>
+          <button class="btn xs ghost" data-action="genSteps">✨ Proposer avec l'IA (optionnel)</button>
+        </div>
+      </div>` : ""}
       <div class="field" style="margin-top:14px"><label>Description (dossier du projet)</label><textarea class="textarea" id="p_desc" placeholder="Résumé visible par l'équipe…">${esc(p.description)}</textarea></div>
       <div class="row">
         <div class="field"><label>📅 Date de début</label><input class="input" type="date" id="p_start" value="${p.startDate || ""}"></div>
@@ -1171,13 +1411,21 @@
       const ctx = $("#p_context").value;
       const steps = generateSteps(ctx);
       const box = $("#aiSuggest");
-      if (!steps.length) { box.innerHTML = `<div style="color:var(--muted);font-size:0.85rem">Écris un peu de contexte puis réessaie.</div>`; return; }
-      box.innerHTML = `<div style="font-size:0.82rem;color:#bae6fd;margin:6px 0">✨ Étapes proposées (modifiables) :</div>` +
-        steps.map(s => `<div class="ai-row"><input value="${esc(s)}"><button class="btn xs ghost x" data-action="rmAiRow">✕</button></div>`).join("") +
-        `<button class="btn xs" data-action="addAiRow" style="margin-top:4px">＋ Ajouter une étape</button>`;
+      if (!box) return;
+      if (!steps.length) { toast("Écris d'abord un peu de contexte"); return; }
+      steps.forEach(s => {
+        const d = document.createElement("div"); d.className = "ai-row";
+        d.innerHTML = `<input value="${esc(s)}"><button class="btn xs ghost x" data-action="rmAiRow">✕</button>`;
+        box.appendChild(d);
+      });
+      toast(steps.length + " étape(s) proposée(s) — modifie ou supprime librement");
     },
     rmAiRow: (el) => el.closest(".ai-row").remove(),
-    addAiRow: () => { const box = $("#aiSuggest"); const d = document.createElement("div"); d.className = "ai-row"; d.innerHTML = `<input placeholder="Nouvelle étape…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button>`; box.insertBefore(d, box.querySelector("button[data-action=addAiRow]")); },
+    addAiRow: () => { const box = $("#aiSuggest"); if (!box) return; const d = document.createElement("div"); d.className = "ai-row"; d.innerHTML = `<input placeholder="Nouvelle étape…"><button class="btn xs ghost x" data-action="rmAiRow">✕</button>`; box.appendChild(d); const i = d.querySelector("input"); if (i) i.focus(); },
+    calPrev: () => { state.ui.calMonth = shiftMonth(curCalMonth(), -1); render(); },
+    calNext: () => { state.ui.calMonth = shiftMonth(curCalMonth(), 1); render(); },
+    calToday: () => { state.ui.calMonth = todayISO().slice(0, 7); render(); },
+    resetSearch: () => { state.ui.search = {}; save(); render(); },
 
     saveProject: (el) => {
       const name = $("#p_name").value.trim();
